@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { User, Role, ClassroomOption } from '../../types';
 import { UserFormModal } from './UserFormModal';
@@ -34,9 +34,16 @@ import {
   Loader2,
   LogIn,
   LogOut,
-  FileText
+  FileText,
+  Image as ImageIcon,
+  ImagePlus,
+  Eye,
+  X,
+  Building2,
+  Sparkles
 } from 'lucide-react';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
+import { compressImage } from '../../firebase/config';
 
 interface SettingsViewProps {
   initialTab?: 'config' | 'users' | 'classrooms' | 'backup' | 'audit';
@@ -76,12 +83,58 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
   } = useApp();
 
   const [schoolName, setSchoolName] = useState(systemConfig.schoolName || '');
+  const [schoolLogo, setSchoolLogo] = useState(systemConfig.schoolLogo || '');
+  const [schoolAffiliation, setSchoolAffiliation] = useState(systemConfig.schoolAffiliation || '');
+  const [schoolAddress, setSchoolAddress] = useState(systemConfig.schoolAddress || '');
+  const [infirmaryRoomName, setInfirmaryRoomName] = useState(systemConfig.infirmaryRoomName || '');
   const [schoolPhone, setSchoolPhone] = useState(systemConfig.schoolPhone || '');
   const [emergencyPhone, setEmergencyPhone] = useState(systemConfig.emergencyPhone || '');
   const [nearbyHospital, setNearbyHospital] = useState(systemConfig.nearbyHospital || '');
   const [hospitalPhone, setHospitalPhone] = useState(systemConfig.hospitalPhone || systemConfig.nearbyHospitalPhone || '');
   const [activeAcademicYear, setActiveAcademicYear] = useState(systemConfig.activeAcademicYear || '2569');
   const [activeSemester, setActiveSemester] = useState(systemConfig.activeSemester || '1');
+
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [isLogoDragOver, setIsLogoDragOver] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setLogoError('กรุณาเลือกไฟล์รูปภาพเท่านั้น (PNG, JPG, SVG, WebP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoError('ขนาดไฟล์ใหญ่เกิน 5MB กรุณาเลือกไฟล์ขนาดเล็กลง');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    setLogoError(null);
+    try {
+      const compressedDataUrl = await compressImage(file, 400, 400, 0.9);
+      setSchoolLogo(compressedDataUrl);
+    } catch (err: any) {
+      console.warn('Compress error, fallback to FileReader:', err);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setSchoolLogo(e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setSchoolLogo('');
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+  };
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'config' | 'users' | 'classrooms' | 'backup' | 'audit'>(initialTab);
@@ -212,6 +265,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
 
   useEffect(() => {
     setSchoolName(systemConfig.schoolName || '');
+    setSchoolLogo(systemConfig.schoolLogo || '');
+    setSchoolAffiliation(systemConfig.schoolAffiliation || '');
+    setSchoolAddress(systemConfig.schoolAddress || '');
+    setInfirmaryRoomName(systemConfig.infirmaryRoomName || '');
     setSchoolPhone(systemConfig.schoolPhone || '');
     setEmergencyPhone(systemConfig.emergencyPhone || '');
     setNearbyHospital(systemConfig.nearbyHospital || '');
@@ -231,6 +288,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
     e.preventDefault();
     updateSystemConfig({
       schoolName,
+      schoolLogo,
+      schoolAffiliation,
+      schoolAddress,
+      infirmaryRoomName,
       schoolPhone,
       emergencyPhone,
       nearbyHospital,
@@ -374,94 +435,363 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
         </button>
       </div>
 
-      {/* TAB 1: General School Config */}
+      {/* TAB 1: General School Config (School Settings & Logo) */}
       {activeTab === 'config' && (
-        <form onSubmit={handleSaveConfig} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4 text-xs">
-          <h3 className="font-heading font-bold text-base text-slate-800 flex items-center space-x-2">
-            <School className="w-4 h-4 text-purple-600" />
-            <span>ข้อมูลโรงเรียนและหมายเลขติดต่อฉุกเฉิน</span>
-          </h3>
+        <form onSubmit={handleSaveConfig} className="space-y-6">
+          {/* Logo & Identity Card */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="font-heading font-bold text-base text-slate-800 flex items-center space-x-2">
+                  <Building2 className="w-5 h-5 text-purple-600" />
+                  <span>การตั้งค่าข้อมูลโรงเรียนและตราสัญลักษณ์ (School Settings & Logo)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  กำหนดชื่อโรงเรียน โลโก้ตราสัญลักษณ์ และข้อมูลทางการสำหรับนำไปแสดงบนหัวรายงาน PDF, เมนูหลัก และเอกสารราชการ
+                </p>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-slate-700 font-semibold mb-1">ชื่อโรงเรียน / สถาบันการศึกษา *</label>
-              <input
-                type="text"
-                required
-                value={schoolName}
-                onChange={e => setSchoolName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-sm text-slate-900"
-              />
+              <div className="flex items-center space-x-2">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  ซิงค์อัตโนมัติทุกอุปกรณ์
+                </span>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">เบอร์โทรศัพท์โรงเรียน</label>
-              <input
-                type="tel"
-                value={schoolPhone}
-                onChange={e => setSchoolPhone(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5"
-              />
-            </div>
+            {/* School Logo Uploader */}
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+              <div className="md:col-span-5">
+                <label className="block text-slate-700 font-bold text-xs mb-2">
+                  ตราสัญลักษณ์โรงเรียน (School Logo)
+                </label>
 
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">เบอร์สายด่วนฉุกเฉิน (เช่น 1669)</label>
-              <input
-                type="text"
-                value={emergencyPhone}
-                onChange={e => setEmergencyPhone(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-rose-600"
-              />
-            </div>
+                <div 
+                  onDragOver={(e) => { e.preventDefault(); setIsLogoDragOver(true); }}
+                  onDragLeave={() => setIsLogoDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsLogoDragOver(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      handleLogoUpload(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all ${
+                    isLogoDragOver 
+                      ? 'border-purple-500 bg-purple-50' 
+                      : schoolLogo 
+                        ? 'border-emerald-300 bg-emerald-50/20' 
+                        : 'border-slate-300 bg-slate-50/50 hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleLogoUpload(e.target.files[0]);
+                      }
+                    }}
+                  />
 
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">โรงพยาบาลใกล้เคียงสำหรับส่งต่อ</label>
-              <input
-                type="text"
-                value={nearbyHospital}
-                onChange={e => setNearbyHospital(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-semibold"
-              />
-            </div>
+                  {schoolLogo ? (
+                    <div className="flex flex-col items-center">
+                      <div className="relative w-28 h-28 rounded-2xl bg-white p-2 border border-slate-200 shadow-xs flex items-center justify-center overflow-hidden group">
+                        <img 
+                          src={schoolLogo} 
+                          alt="ตราสัญลักษณ์โรงเรียน" 
+                          className="max-h-full max-w-full object-contain"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => logoInputRef.current?.click()}
+                            className="p-1.5 bg-white text-slate-700 rounded-lg hover:bg-slate-100 shadow-xs"
+                            title="เปลี่ยนรูป"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
 
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">เบอร์โทรห้องฉุกเฉินโรงพยาบาล</label>
-              <input
-                type="tel"
-                value={hospitalPhone}
-                onChange={e => setHospitalPhone(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5"
-              />
-            </div>
+                      <div className="mt-3 flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => logoInputRef.current?.click()}
+                          className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs transition-colors flex items-center space-x-1"
+                        >
+                          <ImagePlus className="w-3.5 h-3.5" />
+                          <span>เปลี่ยนรูปโลโก้</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs transition-colors flex items-center space-x-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>ลบโลโก้</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center py-3">
+                      <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3">
+                        {isUploadingLogo ? (
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        ) : (
+                          <ImageIcon className="w-7 h-7" />
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700">
+                        ลากรูปภาพมาวางที่นี่ หรือ
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={isUploadingLogo}
+                        className="mt-2 px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-1.5 shadow-2xs transition-colors"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isUploadingLogo ? 'กำลังประมวลผล...' : 'เลือกไฟล์โลโก้'}</span>
+                      </button>
+                    </div>
+                  )}
 
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">ปีการศึกษาปัจจุบัน</label>
-              <input
-                type="text"
-                value={activeAcademicYear}
-                onChange={e => setActiveAcademicYear(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-bold"
-              />
-            </div>
+                  <p className="text-[11px] text-slate-400 mt-3">
+                    รองรับไฟล์ PNG, JPG, WebP, SVG ขนาดไม่เกิน 5MB (ระบบย่อขนาดและแปลงให้พอดีกับเอกสาร)
+                  </p>
 
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">ภาคเรียนปัจจุบัน</label>
-              <input
-                type="text"
-                value={activeSemester}
-                onChange={e => setActiveSemester(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-bold"
-              />
+                  {logoError && (
+                    <div className="mt-2 text-xs text-rose-600 font-medium">
+                      ⚠️ {logoError}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Preview on Document Header */}
+              <div className="md:col-span-7">
+                <label className="block text-slate-700 font-bold text-xs mb-2 flex items-center space-x-1.5">
+                  <Eye className="w-3.5 h-3.5 text-purple-600" />
+                  <span>ตัวอย่างการแสดงผลบนหัวเอกสารราชการ & รายงาน PDF</span>
+                </label>
+
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <div className="bg-white rounded-xl p-5 border border-slate-300 shadow-2xs text-center flex flex-col items-center justify-center">
+                    {schoolLogo ? (
+                      <img 
+                        src={schoolLogo} 
+                        alt="Logo Preview" 
+                        className="h-16 w-16 object-contain mb-2"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs mb-2">
+                        ตราโรงเรียน
+                      </div>
+                    )}
+                    <div className="text-sm font-bold text-slate-900 leading-snug">
+                      {schoolName || 'ชื่อโรงเรียนศึกษาพิเศษ'}
+                    </div>
+                    {schoolAffiliation && (
+                      <div className="text-[11.5px] text-slate-600 mt-0.5">
+                        {schoolAffiliation}
+                      </div>
+                    )}
+                    <div className="text-xs font-semibold text-slate-700 mt-1">
+                      {infirmaryRoomName || 'งานอนามัยโรงเรียนและห้องพยาบาล'}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-2 border-t border-slate-100 pt-2 w-full">
+                      📍 {schoolAddress || 'ที่ตั้งโรงเรียน'} &nbsp;|&nbsp; ☎️ {schoolPhone || '-'}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2 text-center">
+                    * เมื่อบันทึก โลโก้นี้จะปรากฏบนหัวรายงาน PDF ทุกฉบับ (แพ้ยา/อาหาร, กินยาประจำตัว, ใส่ท่อ, โรคประจำตัว) และหัวเว็บ
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="pt-4 flex items-center justify-end">
+          {/* School Details & Address Card */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4 text-xs">
+            <h3 className="font-heading font-bold text-base text-slate-800 flex items-center space-x-2">
+              <School className="w-4 h-4 text-purple-600" />
+              <span>ข้อมูลหน่วยงานและสถานที่ตั้ง</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-slate-700 font-semibold mb-1">
+                  ชื่อโรงเรียน / สถาบันการศึกษา *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={schoolName}
+                  onChange={e => setSchoolName(e.target.value)}
+                  placeholder="เช่น โรงเรียนศึกษาพิเศษชัยนาท"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  สังกัด / หน่วยงานต้นสังกัด
+                </label>
+                <input
+                  type="text"
+                  value={schoolAffiliation}
+                  onChange={e => setSchoolAffiliation(e.target.value)}
+                  placeholder="เช่น สำนักบริหารงานการศึกษาพิเศษ สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-purple-500 outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  ชื่องาน / ห้องพยาบาล
+                </label>
+                <input
+                  type="text"
+                  value={infirmaryRoomName}
+                  onChange={e => setInfirmaryRoomName(e.target.value)}
+                  placeholder="เช่น งานอนามัยโรงเรียนและห้องพยาบาล"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-purple-500 outline-hidden"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-slate-700 font-semibold mb-1">
+                  ที่อยู่โรงเรียน
+                </label>
+                <input
+                  type="text"
+                  value={schoolAddress}
+                  onChange={e => setSchoolAddress(e.target.value)}
+                  placeholder="เช่น 123 หมู่ 4 ต.ชัยนาท อ.เมืองชัยนาท จ.ชัยนาท 17000"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-purple-500 outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  เบอร์โทรศัพท์โรงเรียน
+                </label>
+                <input
+                  type="tel"
+                  value={schoolPhone}
+                  onChange={e => setSchoolPhone(e.target.value)}
+                  placeholder="เช่น 056-123456"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-purple-500 outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Emergency & Medical Referral Card */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4 text-xs">
+            <h3 className="font-heading font-bold text-base text-slate-800 flex items-center space-x-2">
+              <Ambulance className="w-4 h-4 text-rose-600" />
+              <span>หมายเลขติดต่อฉุกเฉินและโรงพยาบาลส่งต่อ</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  เบอร์สายด่วนฉุกเฉิน (เช่น 1669)
+                </label>
+                <input
+                  type="text"
+                  value={emergencyPhone}
+                  onChange={e => setEmergencyPhone(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-rose-600 focus:ring-2 focus:ring-rose-500 outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  โรงพยาบาลใกล้เคียงสำหรับส่งต่อ
+                </label>
+                <input
+                  type="text"
+                  value={nearbyHospital}
+                  onChange={e => setNearbyHospital(e.target.value)}
+                  placeholder="เช่น โรงพยาบาลชัยนาทนเรนทร"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 font-semibold focus:ring-2 focus:ring-purple-500 outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  เบอร์โทรห้องฉุกเฉินโรงพยาบาล
+                </label>
+                <input
+                  type="tel"
+                  value={hospitalPhone}
+                  onChange={e => setHospitalPhone(e.target.value)}
+                  placeholder="เช่น 056-411055 ต่อ 101"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-purple-500 outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Academic Term Card */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4 text-xs">
+            <h3 className="font-heading font-bold text-base text-slate-800 flex items-center space-x-2">
+              <GraduationCap className="w-4 h-4 text-blue-600" />
+              <span>ปีการศึกษาและภาคเรียน</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  ปีการศึกษาปัจจุบัน (พ.ศ.)
+                </label>
+                <input
+                  type="text"
+                  value={activeAcademicYear}
+                  onChange={e => setActiveAcademicYear(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 font-bold focus:ring-2 focus:ring-blue-500 outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">
+                  ภาคเรียนปัจจุบัน
+                </label>
+                <select
+                  value={activeSemester}
+                  onChange={e => setActiveSemester(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 p-2.5 font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
+                >
+                  <option value="1">ภาคเรียนที่ 1</option>
+                  <option value="2">ภาคเรียนที่ 2</option>
+                  <option value="ฤดูร้อน">ภาคฤดูร้อน</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+            <div>
+              {saveSuccess && (
+                <div className="text-emerald-700 font-semibold text-xs flex items-center space-x-1.5 animate-pulse">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  <span>บันทึกการตั้งค่าข้อมูลโรงเรียนและตราสัญลักษณ์เรียบร้อยแล้ว! ข้อมูลจะซิงค์ไปยังทุกอุปกรณ์ทันที</span>
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center space-x-1.5 shadow-xs transition-colors"
+              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center justify-center space-x-2 shadow-xs transition-colors cursor-pointer"
             >
               <Save className="w-4 h-4" />
-              <span>บันทึกการตั้งค่าระบบ</span>
+              <span>บันทึกการตั้งค่าข้อมูลโรงเรียน</span>
             </button>
           </div>
         </form>

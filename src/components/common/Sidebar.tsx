@@ -52,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { 
     currentUser, 
     students,
+    systemConfig,
     uploadedDocuments = [],
     lowStockMedicinesCount, 
     expiringMedicinesCount, 
@@ -124,11 +125,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="w-72 flex flex-col h-full min-h-0 flex-1">
           {/* Sidebar Header (Mobile) */}
           <div className="flex items-center justify-between p-4 border-b border-slate-200 lg:hidden">
-            <div className="flex items-center space-x-2">
-              <HeartPulse className="w-6 h-6 text-teal-600" />
-              <span className="font-heading font-bold text-slate-800 text-sm">
-                ระบบห้องพยาบาลโรงเรียน
-              </span>
+            <div className="flex items-center space-x-2.5">
+              {systemConfig?.schoolLogo ? (
+                <img 
+                  src={systemConfig.schoolLogo} 
+                  alt="Logo" 
+                  className="w-7 h-7 object-contain rounded-md"
+                />
+              ) : (
+                <HeartPulse className="w-6 h-6 text-teal-600" />
+              )}
+              <div className="flex flex-col">
+                <span className="font-heading font-bold text-slate-800 text-sm leading-tight">
+                  {systemConfig?.schoolName || 'ระบบห้องพยาบาล'}
+                </span>
+                <span className="text-[11px] text-teal-700 font-medium">งานอนามัยโรงเรียน</span>
+              </div>
             </div>
             <button 
               onClick={onClose}
@@ -140,14 +152,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Sidebar Header (Desktop) with Collapse Button */}
           <div className="hidden lg:flex items-center justify-between px-3.5 py-2.5 border-b border-slate-200 bg-slate-50/70">
-            <div className="flex items-center space-x-2 text-slate-700 font-heading font-bold text-xs">
-              <HeartPulse className="w-4 h-4 text-teal-600" />
-              <span>เมนูนำทาง</span>
+            <div className="flex items-center space-x-2 text-slate-700 font-heading font-bold text-xs truncate">
+              {systemConfig?.schoolLogo ? (
+                <img 
+                  src={systemConfig.schoolLogo} 
+                  alt="Logo" 
+                  className="w-4 h-4 object-contain rounded-xs shrink-0"
+                />
+              ) : (
+                <HeartPulse className="w-4 h-4 text-teal-600 shrink-0" />
+              )}
+              <span className="truncate">{systemConfig?.schoolName || 'เมนูนำทาง'}</span>
             </div>
             {onToggleCollapse && (
               <button 
                 onClick={onToggleCollapse}
-                className="px-2 py-1 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-xs font-heading font-medium flex items-center space-x-1 transition-all cursor-pointer shadow-2xs"
+                className="px-2 py-1 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-xs font-heading font-medium flex items-center space-x-1 transition-all cursor-pointer shadow-2xs shrink-0"
                 title="หุบเมนูไปด้านซ้าย เพื่อเพิ่มพื้นที่ตาราง"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />

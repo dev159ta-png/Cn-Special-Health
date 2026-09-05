@@ -322,6 +322,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...INITIAL_SYSTEM_CONFIG,
         ...parsed,
         schoolName: migratedSchoolName,
+        schoolLogo: parsed.schoolLogo !== undefined ? parsed.schoolLogo : INITIAL_SYSTEM_CONFIG.schoolLogo,
         schoolAffiliation: parsed.schoolAffiliation || INITIAL_SYSTEM_CONFIG.schoolAffiliation,
         schoolAddress: parsed.schoolAddress || INITIAL_SYSTEM_CONFIG.schoolAddress,
         disabilityCategories: parsed.disabilityCategories?.length ? parsed.disabilityCategories : INITIAL_SYSTEM_CONFIG.disabilityCategories,
@@ -419,10 +420,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => unsub();
   }, []);
 
-  // Firebase Realtime onSnapshot Listeners
+  // Firebase Realtime onSnapshot Listeners (Active across all devices: PC, Android, iOS)
   useEffect(() => {
-    if (!firebaseUser) return;
-
     setIsSyncing(true);
     const unsubs: (() => void)[] = [];
 
@@ -440,15 +439,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setLastSyncedAt(new Date());
           setIsFirebaseConnected(true);
         }
-      }, (err) => setSyncError(err?.message || 'ข้อผิดพลาดการดึงข้อมูลนักเรียน')));
+      }, (err) => {
+        console.warn('Realtime students listener notice:', err);
+      }));
 
       // Realtime Medicines
       unsubs.push(subscribeToMedicines((cloudMedicines) => {
         if (cloudMedicines && cloudMedicines.length > 0) {
           setMedicines(cloudMedicines);
           setLastSyncedAt(new Date());
+          setIsFirebaseConnected(true);
         }
-      }, (err) => setSyncError(err?.message || 'ข้อผิดพลาดการดึงข้อมูลยา')));
+      }, (err) => {
+        console.warn('Realtime medicines listener notice:', err);
+      }));
 
       // Realtime Visits
       unsubs.push(subscribeToVisits((cloudVisits) => {
@@ -460,8 +464,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           setVisits(cloudVisits);
           setLastSyncedAt(new Date());
+          setIsFirebaseConnected(true);
         }
-      }, (err) => setSyncError(err?.message || 'ข้อผิดพลาดการดึงข้อมูลการเข้าห้องพยาบาล')));
+      }, (err) => {
+        console.warn('Realtime visits listener notice:', err);
+      }));
 
       // Realtime Appointments
       unsubs.push(subscribeToAppointments((cloudAppts) => {
@@ -504,9 +511,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Realtime System Config
       unsubs.push(subscribeToSystemConfig((cloudConfig) => {
         if (cloudConfig && cloudConfig.schoolName) {
-          setSystemConfig(prev => ({ ...prev, ...cloudConfig }));
+          setSystemConfig(prev => ({
+            ...prev,
+            ...cloudConfig,
+            schoolLogo: cloudConfig.schoolLogo !== undefined ? cloudConfig.schoolLogo : prev.schoolLogo
+          }));
           setLastSyncedAt(new Date());
+          setIsFirebaseConnected(true);
         }
+      }, (err) => {
+        console.warn('Realtime systemConfig listener notice:', err);
       }));
     } catch (e: any) {
       console.error('Error attaching Firestore realtime listeners:', e);
@@ -518,7 +532,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       unsubs.forEach(u => u());
     };
-  }, [firebaseUser]);
+  }, []);
 
   // Helper for logging audits
   const logAudit = useCallback((
@@ -539,6 +553,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       details
     };
     setAuditLogs(prev => [newLog, ...prev]);
+    saveAuditLogToFirestore(newLog).catch(err => console.warn('Save audit log notice:', err));
   }, [currentUser]);
 
   // User Management
@@ -615,32 +630,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: now
     };
     setStudents(prev => [newStudent, ...prev]);
-    if (firebaseUser) {
-      saveStudentToFirestore(newStudent).catch(console.error);
-    }
+    saveStudentToFirestore(newStudent).catch(err => console.error('Save student firestore error:', err));
     logAudit('เพิ่ม', 'นักเรียน', `เพิ่มข้อมูลนักเรียน: ${newStudent.prefix} ${newStudent.firstName} ${newStudent.lastName} (${newStudent.studentCode})`);
     return newStudent;
-  }, [logAudit, firebaseUser]);
+  }, [logAudit]);
 
   const updateStudent = useCallback((id: string, updates: Partial<Student>) => {
     const now = new Date().toISOString().slice(0, 10);
     const target = students.find(s => s.id === id);
     const updatedStudent = target ? { ...target, ...updates, updatedAt: now } : null;
     setStudents(prev => prev.map(s => s.id === id ? (updatedStudent || s) : s));
-    if (firebaseUser && updatedStudent) {
-      saveStudentToFirestore(updatedStudent).catch(console.error);
+    if (updatedStudent) {
+      saveStudentToFirestore(updatedStudent).catch(err => console.error('Update student firestore error:', err));
     }
     logAudit('แก้ไข', 'นักเรียน', `แก้ไขข้อมูลสุขภาพ/ข้อมูลทั่วไป: ${target ? target.firstName : id}`);
-  }, [students, logAudit, firebaseUser]);
+  }, [students, logAudit]);
 
   const deleteStudent = useCallback((id: string) => {
     const target = students.find(s => s.id === id);
     setStudents(prev => prev.filter(s => s.id !== id));
-    if (firebaseUser) {
-      deleteStudentFromFirestore(id).catch(console.error);
-    }
+    deleteStudentFromFirestore(id).catch(err => console.error('Delete student firestore error:', err));
     logAudit('ลบ', 'นักเรียน', `ลบข้อมูลนักเรียน: ${target ? target.firstName + ' ' + target.lastName : id}`);
-  }, [students, logAudit, firebaseUser]);
+  }, [students, logAudit]);
 
   const getStudentById = useCallback((id: string) => {
     return students.find(s => s.id === id);
@@ -653,9 +664,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `med-${Date.now()}`
     };
     setMedicines(prev => [...prev, newMed]);
-    if (firebaseUser) {
-      saveMedicineToFirestore(newMed).catch(console.error);
-    }
+    saveMedicineToFirestore(newMed).catch(err => console.error('Save medicine firestore error:', err));
     
     // Log stock movement
     const now = new Date();
@@ -674,32 +683,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       performedBy: currentUser.name
     };
     setStockLogs(prev => [newStockLog, ...prev]);
-    if (firebaseUser) {
-      saveStockLogToFirestore(newStockLog).catch(console.error);
-    }
+    saveStockLogToFirestore(newStockLog).catch(err => console.error('Save stock log firestore error:', err));
 
     logAudit('เพิ่ม', 'คลังยา', `เพิ่มยาใหม่เข้าคลัง: ${newMed.tradeName} จำนวน ${newMed.currentStock} ${newMed.unit}`);
     return newMed;
-  }, [currentUser.name, logAudit, firebaseUser]);
+  }, [currentUser.name, logAudit]);
 
   const updateMedicine = useCallback((id: string, updates: Partial<Medicine>) => {
     const target = medicines.find(m => m.id === id);
     const updatedMed = target ? { ...target, ...updates } : null;
     setMedicines(prev => prev.map(m => m.id === id ? (updatedMed || m) : m));
-    if (firebaseUser && updatedMed) {
-      saveMedicineToFirestore(updatedMed).catch(console.error);
+    if (updatedMed) {
+      saveMedicineToFirestore(updatedMed).catch(err => console.error('Update medicine firestore error:', err));
     }
     logAudit('แก้ไข', 'คลังยา', `แก้ไขข้อมูลยา: ${target ? target.tradeName : id}`);
-  }, [medicines, logAudit, firebaseUser]);
+  }, [medicines, logAudit]);
 
   const deleteMedicine = useCallback((id: string) => {
     const target = medicines.find(m => m.id === id);
     setMedicines(prev => prev.filter(m => m.id !== id));
-    if (firebaseUser) {
-      deleteMedicineFromFirestore(id).catch(console.error);
-    }
+    deleteMedicineFromFirestore(id).catch(err => console.error('Delete medicine firestore error:', err));
     logAudit('ลบ', 'คลังยา', `ลบรายการยา: ${target ? target.tradeName : id}`);
-  }, [medicines, logAudit, firebaseUser]);
+  }, [medicines, logAudit]);
 
   const restockMedicine = useCallback((
     id: string, 
@@ -711,37 +716,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let targetMed: Medicine | undefined;
     setMedicines(prev => prev.map(m => {
       if (m.id === id) {
-        targetMed = m;
-        return {
+        targetMed = {
           ...m,
           currentStock: m.currentStock + quantity,
           lotNumber: lotNumber || m.lotNumber,
           expiryDate: expiryDate || m.expiryDate
         };
+        return targetMed;
       }
       return m;
     }));
 
     if (targetMed) {
+      saveMedicineToFirestore(targetMed).catch(err => console.error('Restock medicine firestore error:', err));
       const now = new Date();
       const timeStr = `${now.toISOString().slice(0, 10)} ${now.toTimeString().slice(0, 5)}`;
-      setStockLogs(prev => [{
+      const newLog: StockMovementLog = {
         id: `log-${Date.now()}`,
         date: timeStr,
-        medicineId: targetMed!.id,
-        medicineName: targetMed!.tradeName,
+        medicineId: targetMed.id,
+        medicineName: targetMed.tradeName,
         movementType: 'รับเข้าคลัง',
         quantity,
-        previousStock: targetMed!.currentStock,
-        newStock: targetMed!.currentStock + quantity,
-        lotNumber: lotNumber || targetMed!.lotNumber,
+        previousStock: targetMed.currentStock - quantity,
+        newStock: targetMed.currentStock,
+        lotNumber: lotNumber || targetMed.lotNumber,
         referenceNote: note || 'รับยาเข้าคลังเพิ่มเติม',
         performedBy: currentUser.name
-      }, ...prev]);
+      };
+      setStockLogs(prev => [newLog, ...prev]);
+      saveStockLogToFirestore(newLog).catch(err => console.error('Save restock log firestore error:', err));
 
       logAudit('เพิ่ม', 'คลังยา', `รับยา ${targetMed.tradeName} เข้าคลังจำนวน +${quantity} ${targetMed.unit} (Lot: ${lotNumber})`);
     }
-  }, [currentUser.name, logAudit, medicines]);
+  }, [currentUser.name, logAudit]);
 
   // Drug safety check before dispensing
   const checkDrugSafety = useCallback((studentId: string, medicineId: string, quantity: number): DrugSafetyResult => {
@@ -961,12 +969,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const currentM = updated[medIndex];
             const newStockVal = Math.max(0, currentM.currentStock - item.quantity);
             
-            updated[medIndex] = {
+            const updatedM = {
               ...currentM,
               currentStock: newStockVal
             };
+            updated[medIndex] = updatedM;
+            saveMedicineToFirestore(updatedM).catch(err => console.error('Update dispensed med firestore error:', err));
 
-            newLogs.push({
+            const logItem: StockMovementLog = {
               id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
               date: `${dateStr} ${timeStr}`,
               medicineId: currentM.id,
@@ -979,7 +989,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               referenceId: newVisit.id,
               referenceNote: `จ่ายให้ ${visitData.studentName} (${visitNumber})`,
               performedBy: visitData.attendantName
-            });
+            };
+            newLogs.push(logItem);
+            saveStockLogToFirestore(logItem).catch(err => console.error('Save dispense stock log error:', err));
           }
         });
 
@@ -991,9 +1003,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setVisits(prev => [newVisit, ...prev]);
-    if (firebaseUser) {
-      saveVisitToFirestore(newVisit).catch(console.error);
-    }
+    saveVisitToFirestore(newVisit).catch(err => console.error('Save visit firestore error:', err));
     logAudit(
       'เพิ่ม', 
       'การรักษา', 
@@ -1009,26 +1019,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     return newVisit;
-  }, [visits.length, illnessEpisodes, currentUser.name, logAudit, firebaseUser]);
+  }, [visits.length, illnessEpisodes, currentUser.name, logAudit]);
 
   const updateVisit = useCallback((id: string, updates: Partial<InfirmaryVisit>) => {
     const target = visits.find(v => v.id === id);
     const updatedVisit = target ? { ...target, ...updates } : null;
     setVisits(prev => prev.map(v => v.id === id ? (updatedVisit || v) : v));
-    if (firebaseUser && updatedVisit) {
-      saveVisitToFirestore(updatedVisit).catch(console.error);
+    if (updatedVisit) {
+      saveVisitToFirestore(updatedVisit).catch(err => console.error('Update visit firestore error:', err));
     }
     logAudit('แก้ไข', 'การรักษา', `แก้ไขบันทึกการรักษา ID: ${id}`);
-  }, [visits, logAudit, firebaseUser]);
+  }, [visits, logAudit]);
 
   const deleteVisit = useCallback((id: string) => {
     const target = visits.find(v => v.id === id);
     setVisits(prev => prev.filter(v => v.id !== id));
-    if (firebaseUser) {
-      deleteVisitFromFirestore(id).catch(console.error);
-    }
+    deleteVisitFromFirestore(id).catch(err => console.error('Delete visit firestore error:', err));
     logAudit('ลบ', 'การรักษา', `ลบบันทึกการรักษาหมายเลข: ${target ? target.visitNumber : id}`);
-  }, [visits, logAudit, firebaseUser]);
+  }, [visits, logAudit]);
 
   // Illness Episodes Management
   const addIllnessEpisode = useCallback((data: Omit<IllnessEpisode, 'id' | 'createdAt'>): IllnessEpisode => {
@@ -1046,22 +1054,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setIllnessEpisodes(prev => [newEp, ...prev]);
-    if (firebaseUser) {
-      saveIllnessEpisodeToFirestore(newEp).catch(console.error);
-    }
+    saveIllnessEpisodeToFirestore(newEp).catch(err => console.error('Save illness firestore error:', err));
     logAudit('เพิ่ม', 'การรักษา', `เปิดการติดตามสถานะเจ็บป่วย: ${newEp.studentName} (${newEp.illnessCode}) อาการ: ${newEp.symptoms.join(', ')}`);
     return newEp;
-  }, [illnessEpisodes.length, logAudit, firebaseUser]);
+  }, [illnessEpisodes.length, logAudit]);
 
   const updateIllnessEpisode = useCallback((id: string, updates: Partial<IllnessEpisode>) => {
     const target = illnessEpisodes.find(e => e.id === id);
     const updatedEp = target ? { ...target, ...updates, updatedAt: new Date().toISOString() } : null;
     setIllnessEpisodes(prev => prev.map(ep => ep.id === id ? (updatedEp || ep) : ep));
-    if (firebaseUser && updatedEp) {
-      saveIllnessEpisodeToFirestore(updatedEp).catch(console.error);
+    if (updatedEp) {
+      saveIllnessEpisodeToFirestore(updatedEp).catch(err => console.error('Update illness firestore error:', err));
     }
     logAudit('แก้ไข', 'การรักษา', `แก้ไขสถานะเจ็บป่วย ID: ${id}`);
-  }, [illnessEpisodes, logAudit, firebaseUser]);
+  }, [illnessEpisodes, logAudit]);
 
   const markIllnessRecovered = useCallback((id: string, recoveredDate?: string, note?: string) => {
     const now = new Date();
@@ -1084,12 +1090,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return ep;
     }));
 
-    if (firebaseUser && updatedEp) {
-      saveIllnessEpisodeToFirestore(updatedEp).catch(console.error);
+    if (updatedEp) {
+      saveIllnessEpisodeToFirestore(updatedEp).catch(err => console.error('Mark illness recovered firestore error:', err));
     }
 
     logAudit('แก้ไข', 'การรักษา', `เปลี่ยนสถานะเป็นหายแล้ว: ${target ? target.studentName : id} (${target ? target.illnessCode : ''}) วันที่หาย: ${recDate}`);
-  }, [currentUser.name, illnessEpisodes, logAudit, firebaseUser]);
+  }, [currentUser.name, illnessEpisodes, logAudit]);
 
   const reopenIllnessEpisode = useCallback((id: string) => {
     const target = illnessEpisodes.find(ep => ep.id === id);
@@ -1106,20 +1112,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return ep;
     }));
-    if (firebaseUser && updatedEp) {
-      saveIllnessEpisodeToFirestore(updatedEp).catch(console.error);
+    if (updatedEp) {
+      saveIllnessEpisodeToFirestore(updatedEp).catch(err => console.error('Reopen illness firestore error:', err));
     }
     logAudit('แก้ไข', 'การรักษา', `เปิดสถานะเจ็บป่วยใหม่ (กำลังป่วย): ${target ? target.studentName : id}`);
-  }, [illnessEpisodes, logAudit, firebaseUser]);
+  }, [illnessEpisodes, logAudit]);
 
   const deleteIllnessEpisode = useCallback((id: string) => {
     const target = illnessEpisodes.find(ep => ep.id === id);
     setIllnessEpisodes(prev => prev.filter(ep => ep.id !== id));
-    if (firebaseUser) {
-      deleteIllnessEpisodeFromFirestore(id).catch(console.error);
-    }
+    deleteIllnessEpisodeFromFirestore(id).catch(err => console.error('Delete illness firestore error:', err));
     logAudit('ลบ', 'การรักษา', `ลบรายการสถานะเจ็บป่วย: ${target ? target.illnessCode : id}`);
-  }, [illnessEpisodes, logAudit, firebaseUser]);
+  }, [illnessEpisodes, logAudit]);
 
   // Appointments Management
   const addAppointment = useCallback((data: Omit<MedicalAppointment, 'id' | 'createdAt'>): MedicalAppointment => {
@@ -1131,59 +1135,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt
     };
     setAppointments(prev => [newApt, ...prev]);
-    if (firebaseUser) {
-      saveAppointmentToFirestore(newApt).catch(console.error);
-    }
+    saveAppointmentToFirestore(newApt).catch(err => console.error('Save apt firestore error:', err));
     logAudit('เพิ่ม', 'การรักษา', `เพิ่มนัดพบแพทย์: ${newApt.studentName} - ${newApt.hospitalName} (${newApt.appointmentDate} ${newApt.appointmentTime} น.)`);
     return newApt;
-  }, [logAudit, firebaseUser]);
+  }, [logAudit]);
 
   const updateAppointment = useCallback((id: string, updates: Partial<MedicalAppointment>) => {
     const target = appointments.find(a => a.id === id);
     const updatedApt = target ? { ...target, ...updates, updatedAt: new Date().toISOString() } : null;
     setAppointments(prev => prev.map(a => a.id === id ? (updatedApt || a) : a));
-    if (firebaseUser && updatedApt) {
-      saveAppointmentToFirestore(updatedApt).catch(console.error);
+    if (updatedApt) {
+      saveAppointmentToFirestore(updatedApt).catch(err => console.error('Update apt firestore error:', err));
     }
     logAudit('แก้ไข', 'การรักษา', `แก้ไขการนัดพบแพทย์ ID: ${id}`);
-  }, [appointments, logAudit, firebaseUser]);
+  }, [appointments, logAudit]);
 
   const deleteAppointment = useCallback((id: string) => {
     const target = appointments.find(a => a.id === id);
     setAppointments(prev => prev.filter(a => a.id !== id));
-    if (firebaseUser) {
-      deleteAppointmentFromFirestore(id).catch(console.error);
-    }
+    deleteAppointmentFromFirestore(id).catch(err => console.error('Delete apt firestore error:', err));
     logAudit('ลบ', 'การรักษา', `ลบการนัดพบแพทย์ของ: ${target ? target.studentName : id}`);
-  }, [appointments, logAudit, firebaseUser]);
+  }, [appointments, logAudit]);
 
-  // System Config
+  // System Config & School Settings
   const updateSystemConfig = useCallback((updates: Partial<SystemConfig>) => {
     setSystemConfig(prev => {
       const next = { ...prev, ...updates };
-      if (firebaseUser) {
-        saveSystemConfigToFirestore(next).catch(console.error);
-      }
+      saveSystemConfigToFirestore(next).catch(err => console.error('Save config firestore error:', err));
       return next;
     });
-    logAudit('แก้ไข', 'ตั้งค่าระบบ', 'ปรับปรุงการตั้งค่าระบบห้องพยาบาล');
-  }, [logAudit, firebaseUser]);
+    logAudit('แก้ไข', 'ตั้งค่าระบบ', 'ปรับปรุงการตั้งค่าระบบและข้อมูลโรงเรียน');
+  }, [logAudit]);
 
   const addClassroom = useCallback((classroom: ClassroomOption) => {
-    setSystemConfig(prev => ({
-      ...prev,
-      classrooms: [...prev.classrooms, classroom]
-    }));
+    setSystemConfig(prev => {
+      const next = {
+        ...prev,
+        classrooms: [...prev.classrooms, classroom]
+      };
+      saveSystemConfigToFirestore(next).catch(err => console.error('Save classroom firestore error:', err));
+      return next;
+    });
     logAudit('เพิ่ม', 'ตั้งค่าระบบ', `เพิ่มตัวเลือกชั้นเรียน/ห้องเรียน: ${classroom.grade} (${classroom.name})`);
   }, [logAudit]);
 
   const updateClassroom = useCallback((index: number, updatedClassroom: ClassroomOption) => {
     setSystemConfig(prev => {
-      const next = [...prev.classrooms];
-      if (index >= 0 && index < next.length) {
-        next[index] = updatedClassroom;
+      const nextClassrooms = [...prev.classrooms];
+      if (index >= 0 && index < nextClassrooms.length) {
+        nextClassrooms[index] = updatedClassroom;
       }
-      return { ...prev, classrooms: next };
+      const next = { ...prev, classrooms: nextClassrooms };
+      saveSystemConfigToFirestore(next).catch(err => console.error('Save classroom firestore error:', err));
+      return next;
     });
     logAudit('แก้ไข', 'ตั้งค่าระบบ', `แก้ไขตัวเลือกชั้นเรียน/ห้องเรียน: ${updatedClassroom.grade} (${updatedClassroom.name})`);
   }, [logAudit]);
@@ -1191,11 +1195,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteClassroom = useCallback((index: number) => {
     setSystemConfig(prev => {
       const target = prev.classrooms[index];
-      const next = prev.classrooms.filter((_, i) => i !== index);
+      const nextClassrooms = prev.classrooms.filter((_, i) => i !== index);
+      const next = { ...prev, classrooms: nextClassrooms };
+      saveSystemConfigToFirestore(next).catch(err => console.error('Save classroom firestore error:', err));
       if (target) {
         logAudit('ลบ', 'ตั้งค่าระบบ', `ลบตัวเลือกชั้นเรียน/ห้องเรียน: ${target.grade} (${target.name})`);
       }
-      return { ...prev, classrooms: next };
+      return next;
     });
   }, [logAudit]);
 
@@ -1448,9 +1454,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setUploadedDocuments(prev => [newDoc, ...prev]);
 
-      if (firebaseUser) {
+      try {
         await saveDocumentToFirestore(newDoc);
         setLastSyncedAt(new Date());
+      } catch (saveErr) {
+        console.warn('Save document to firestore notice:', saveErr);
       }
 
       logAudit('เพิ่ม', 'เอกสาร', `อัปโหลดเอกสาร Cloud: ${newDoc.title} (${newDoc.fileName})`);
@@ -1461,15 +1469,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsSyncing(false);
     }
-  }, [students, currentUser.name, firebaseUser, logAudit]);
+  }, [students, currentUser.name, logAudit]);
 
   const deleteUploadedDocument = useCallback(async (id: string) => {
     setUploadedDocuments(prev => prev.filter(d => d.id !== id));
-    if (firebaseUser) {
+    try {
       await deleteDocumentFromFirestore(id);
+    } catch (err) {
+      console.warn('Delete document from firestore notice:', err);
     }
     logAudit('ลบ', 'เอกสาร', `ลบเอกสาร Cloud ID: ${id}`);
-  }, [firebaseUser, logAudit]);
+  }, [logAudit]);
 
   const dispenseLogs: DispenseLogItem[] = stockLogs.map(l => ({
     id: l.id,

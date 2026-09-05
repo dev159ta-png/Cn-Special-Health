@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatThaiDatePattern, formatThaiDateCompact } from '../../utils/dateUtils';
+import { exportTableAsPDF } from '../../utils/tablePdfExport';
 import { 
   FileText, 
   Printer, 
@@ -11,7 +12,8 @@ import {
   Pill, 
   Users, 
   HeartHandshake,
-  Table
+  Table,
+  FileDown
 } from 'lucide-react';
 
 interface ReportsViewProps {
@@ -115,6 +117,149 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     document.body.removeChild(link);
   };
 
+  // Export as formatted PDF via exportTableAsPDF
+  const handleExportPDF = () => {
+    const schoolName = systemConfig?.schoolName || 'โรงเรียนศึกษาพิเศษชัยนาท';
+    const schoolLogo = systemConfig?.schoolLogo;
+
+    if (reportType === 'visits') {
+      exportTableAsPDF({
+        title: `รายงานสรุปการให้บริการห้องพยาบาล`,
+        schoolName,
+        schoolLogo,
+        showIndex: true,
+        columns: [
+          { header: 'เลขที่ VN', key: 'visitNumber', width: '90px', align: 'center' },
+          { header: 'วัน-เวลา', key: 'dateTime', width: '130px', align: 'center' },
+          { header: 'ชื่อ-นามสกุลนักเรียน', key: 'studentName', width: '160px', align: 'left' },
+          { header: 'ห้อง', key: 'classroom', width: '70px', align: 'center' },
+          { header: 'อาการที่พบ', key: 'symptoms', width: '180px', align: 'left' },
+          { header: 'การรักษาเบื้องต้น & ยา', key: 'treatment', width: '220px', align: 'left' },
+          { header: 'ผลการรักษา', key: 'outcome', width: '100px', align: 'center' },
+          { header: 'ผู้ให้บริการ', key: 'attendant', width: '110px', align: 'left' }
+        ],
+        rows: filteredVisits.map(v => {
+          const meds = (v.dispensedMedicines || []).map(m => `${m.medicineName} (${m.quantity} ${m.unit})`).join(', ');
+          const treatText = (v.treatments || (v as any).treatment || []).join(', ');
+          return {
+            visitNumber: v.visitNumber,
+            dateTime: `${formatThaiDatePattern(v.visitDate)}\n${v.visitTime} น.`,
+            studentName: `${v.studentName} (${v.nickname || ''})`,
+            classroom: v.classroom,
+            symptoms: (v.symptoms || []).join(', ') || '-',
+            treatment: [treatText, meds ? `ยา: ${meds}` : ''].filter(Boolean).join('\n') || '-',
+            outcome: v.outcome,
+            attendant: v.attendantName
+          };
+        }),
+        summaryStats: [
+          { label: 'จำนวนครั้งที่รับบริการ', value: `${filteredVisits.length} ครั้ง` },
+          { label: 'ช่วงวันที่', value: `${formatThaiDateCompact(startDate)} - ${formatThaiDateCompact(endDate)}` }
+        ]
+      });
+    } else if (reportType === 'dispensing') {
+      exportTableAsPDF({
+        title: `รายงานการจ่ายยาและตัดสต็อกห้องพยาบาล`,
+        schoolName,
+        schoolLogo,
+        showIndex: true,
+        columns: [
+          { header: 'วัน-เวลา', key: 'dateTime', width: '130px', align: 'center' },
+          { header: 'เลขที่ VN', key: 'visitNumber', width: '90px', align: 'center' },
+          { header: 'รายการยาที่จ่าย', key: 'medicineName', width: '180px', align: 'left' },
+          { header: 'Lot Number', key: 'lotNumber', width: '100px', align: 'center' },
+          { header: 'จำนวนที่จ่าย', key: 'quantity', width: '90px', align: 'center' },
+          { header: 'คงเหลือหลังจ่าย', key: 'stockAfter', width: '100px', align: 'center' },
+          { header: 'ผู้รับยา', key: 'studentName', width: '140px', align: 'left' },
+          { header: 'ผู้จ่ายยา', key: 'dispenserName', width: '110px', align: 'left' }
+        ],
+        rows: filteredDispenseLogs.map(l => ({
+          dateTime: `${formatThaiDatePattern(l.dispenseDate)}\n${l.dispenseTime} น.`,
+          visitNumber: l.visitNumber,
+          medicineName: l.medicineName,
+          lotNumber: l.lotNumber || '-',
+          quantity: `${l.quantity} ${l.unit}`,
+          stockAfter: `${l.stockAfter} ${l.unit}`,
+          studentName: l.studentName,
+          dispenserName: l.dispenserName
+        })),
+        summaryStats: [
+          { label: 'จำนวนรายการจ่ายยา', value: `${filteredDispenseLogs.length} รายการ` },
+          { label: 'ช่วงวันที่', value: `${formatThaiDateCompact(startDate)} - ${formatThaiDateCompact(endDate)}` }
+        ]
+      });
+    } else if (reportType === 'inventory') {
+      exportTableAsPDF({
+        title: 'รายงานบัญชีคุมยอดคลังยาและเวชภัณฑ์ห้องพยาบาล',
+        schoolName,
+        schoolLogo,
+        showIndex: true,
+        columns: [
+          { header: 'รหัสยา', key: 'code', width: '80px', align: 'center' },
+          { header: 'ชื่อการค้า / ชื่อสามัญ', key: 'names', width: '220px', align: 'left' },
+          { header: 'หมวดหมู่', key: 'category', width: '110px', align: 'left' },
+          { header: 'คงเหลือ', key: 'stock', width: '90px', align: 'center' },
+          { header: 'จุดสั่งซื้อ', key: 'minimumStock', width: '80px', align: 'center' },
+          { header: 'Lot No.', key: 'lotNumber', width: '90px', align: 'center' },
+          { header: 'วันหมดอายุ', key: 'expiryDate', width: '110px', align: 'center' },
+          { header: 'ผู้ผลิต / แหล่งจัดหา', key: 'manufacturer', width: '140px', align: 'left' }
+        ],
+        rows: medicines.map(m => ({
+          code: m.code,
+          names: `${m.tradeName}\n(${m.genericName} ${m.strength})`,
+          category: m.category,
+          stock: `${m.currentStock} ${m.unit}`,
+          minimumStock: `${m.minimumStock} ${m.unit}`,
+          lotNumber: m.lotNumber || '-',
+          expiryDate: formatThaiDateCompact(m.expiryDate),
+          manufacturer: m.manufacturer || '-'
+        })),
+        summaryStats: [
+          { label: 'จำนวนรายการยาทั้งหมด', value: `${medicines.length} รายการ` },
+          { label: 'ยาคงเหลือต่ำกว่าเกณฑ์', value: `${medicines.filter(m => m.currentStock <= m.minimumStock).length} รายการ` }
+        ]
+      });
+    } else {
+      exportTableAsPDF({
+        title: 'รายงานทะเบียนประวัติสุขภาพและความพิการของนักเรียน',
+        schoolName,
+        schoolLogo,
+        showIndex: true,
+        columns: [
+          { header: 'รหัส', key: 'studentCode', width: '70px', align: 'center' },
+          { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '160px', align: 'left' },
+          { header: 'ห้อง', key: 'classroom', width: '70px', align: 'center' },
+          { header: 'กรุ๊ปเลือด', key: 'bloodType', width: '60px', align: 'center' },
+          { header: 'ประเภทความพิการ', key: 'disability', width: '150px', align: 'left' },
+          { header: 'โรคประจำตัว', key: 'diseases', width: '180px', align: 'left' },
+          { header: 'ประวัติแพ้ยา / แพ้อาหาร', key: 'allergies', width: '180px', align: 'left' },
+          { header: 'เบอร์ผู้ปกครอง', key: 'guardianPhone', width: '100px', align: 'center' }
+        ],
+        rows: filteredStudents.map(s => {
+          const dis = (s.disabilities || []).map(d => d.typeName).join(', ') || '-';
+          const disNames = (s.chronicDiseases || []).map(c => c.diseaseName).join(', ') || '-';
+          const drugAllergies = (s.drugAllergies || []).map(d => `แพ้ยา: ${d.drugName}`).join('\n');
+          const foodAllergies = (s.foodAllergies || []).map(f => `แพ้อาหาร: ${f.foodName}`).join('\n');
+          const allAllergies = [drugAllergies, foodAllergies].filter(Boolean).join('\n') || '-';
+
+          return {
+            studentCode: s.studentCode,
+            fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname || ''})`,
+            classroom: s.classroom,
+            bloodType: s.bloodType,
+            disability: dis,
+            diseases: disNames,
+            allergies: allAllergies,
+            guardianPhone: s.guardianPhone || '-'
+          };
+        }),
+        summaryStats: [
+          { label: 'จำนวนนักเรียนทั้งหมด', value: `${filteredStudents.length} คน` }
+        ]
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -134,6 +279,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={handleExportPDF}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold flex items-center space-x-1.5 shadow-xs transition-colors"
+            title="ดาวน์โหลดเป็นไฟล์ PDF คุณภาพสูง พร้อมหัวเอกสารราชการและลายเซ็น"
+          >
+            <FileDown className="w-4 h-4" />
+            <span>ดาวน์โหลด PDF (.pdf)</span>
+          </button>
+
           <button
             onClick={handleExportCSV}
             className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold flex items-center space-x-1.5 shadow-xs transition-colors"
@@ -251,10 +405,19 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       >
         {/* Official Header */}
         <div className="text-center border-b-2 border-slate-800 pb-4">
+          {systemConfig?.schoolLogo && (
+            <div className="flex justify-center mb-2">
+              <img 
+                src={systemConfig.schoolLogo} 
+                alt="School Logo" 
+                className="w-16 h-16 object-contain" 
+              />
+            </div>
+          )}
           <div className="flex items-center justify-center space-x-2 text-xs font-semibold text-slate-600">
             <span>สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน (สพฐ.)</span>
             <span>•</span>
-            <span>ศูนย์การศึกษาพิเศษ / โรงเรียนศึกษาพิเศษ</span>
+            <span>{systemConfig?.schoolAffiliation || 'สำนักบริหารงานการศึกษาพิเศษ'}</span>
           </div>
           <h3 className="font-heading font-bold text-xl text-slate-900 mt-1">
             {systemConfig.schoolName}
@@ -355,6 +518,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <table className="w-full text-left text-xs border border-slate-300">
               <thead className="bg-slate-100 text-slate-800 font-semibold border-b border-slate-300">
                 <tr>
+                  <th className="p-2 border-r border-slate-300 text-center w-12">ลำดับ</th>
                   <th className="p-2 border-r border-slate-300">รหัสยา</th>
                   <th className="p-2 border-r border-slate-300">ชื่อการค้า / ชื่อสามัญ</th>
                   <th className="p-2 border-r border-slate-300">หมวดหมู่</th>
@@ -366,8 +530,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {medicines.map(m => (
+                {medicines.map((m, idx) => (
                   <tr key={m.id} className="hover:bg-slate-50">
+                    <td className="p-2 border-r border-slate-200 text-center font-medium text-slate-500">{idx + 1}</td>
                     <td className="p-2 border-r border-slate-200 font-mono font-bold">{m.code}</td>
                     <td className="p-2 border-r border-slate-200">
                       <div className="font-bold text-slate-900">{m.tradeName}</div>
@@ -392,6 +557,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <table className="w-full text-left text-xs border border-slate-300">
               <thead className="bg-slate-100 text-slate-800 font-semibold border-b border-slate-300">
                 <tr>
+                  <th className="p-2 border-r border-slate-300 text-center w-12">ลำดับ</th>
                   <th className="p-2 border-r border-slate-300">รหัส</th>
                   <th className="p-2 border-r border-slate-300">ชื่อ-นามสกุล (ชื่อเล่น)</th>
                   <th className="p-2 border-r border-slate-300">ห้อง</th>
@@ -403,8 +569,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {filteredStudents.map(s => (
+                {filteredStudents.map((s, idx) => (
                   <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="p-2 border-r border-slate-200 text-center font-medium text-slate-500">{idx + 1}</td>
                     <td className="p-2 border-r border-slate-200 font-mono font-bold">{s.studentCode}</td>
                     <td className="p-2 border-r border-slate-200 font-semibold">{s.prefix}{s.firstName} {s.lastName} ({s.nickname})</td>
                     <td className="p-2 border-r border-slate-200">{s.classroom}</td>
@@ -439,7 +606,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <div className="w-48 mx-auto border-b border-slate-400 pb-1 mb-1">
               (นายอภิชาติ การศึกษา)
             </div>
-            <p className="text-slate-600">ผู้อำนวยการโรงเรียนศึกษาพิเศษชัยนาท</p>
+            <p className="text-slate-600">ผู้อำนวยการ{systemConfig?.schoolName || 'โรงเรียนศึกษาพิเศษชัยนาท'}</p>
           </div>
         </div>
 

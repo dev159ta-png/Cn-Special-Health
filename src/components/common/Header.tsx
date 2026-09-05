@@ -133,9 +133,19 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center space-x-3 cursor-pointer"
             onClick={() => onNavigate('dashboard')}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 flex items-center justify-center text-white shadow-sm ring-2 ring-teal-100">
-              <HeartPulse className="w-6 h-6" />
-            </div>
+            {systemConfig.schoolLogo ? (
+              <div className="w-10 h-10 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-xs ring-2 ring-teal-100 overflow-hidden shrink-0">
+                <img 
+                  src={systemConfig.schoolLogo} 
+                  alt="ตราสัญลักษณ์โรงเรียน" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 flex items-center justify-center text-white shadow-sm ring-2 ring-teal-100 shrink-0">
+                <HeartPulse className="w-6 h-6" />
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-heading font-bold text-slate-800 text-lg leading-tight tracking-tight">
