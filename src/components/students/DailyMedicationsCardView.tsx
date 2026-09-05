@@ -250,8 +250,9 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
   const handleDownloadPdf = () => {
     exportTableAsPDF({
       title: 'รายงานรายชื่อนักเรียนที่ต้องรับประทานยาประจำตัว',
-      subtitle: `ตัวกรองมื้อยา: ${filterTiming === 'all' ? 'ทุกมื้อ' : filterTiming} | การจัดเก็บ: ${filterStorage === 'all' ? 'ทุกรูปแบบ' : filterStorage} | ระดับชั้น/ห้อง: ${filterClassroom === 'all' ? 'ทุกระดับชั้น/ห้อง' : filterClassroom}`,
-      schoolName: systemConfig?.schoolName || 'ศูนย์การศึกษาพิเศษ ประจำจังหวัดชัยนาท',
+      schoolName: systemConfig?.schoolName || 'โรงเรียนศึกษาพิเศษชัยนาท',
+      schoolLogo: systemConfig?.schoolLogo,
+      showIndex: true,
       columns: [
         { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
         { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
@@ -541,7 +542,7 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
             <table className="w-full text-left text-xs text-slate-600 border-collapse">
               <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
                 <tr>
-                  <th className="py-3.5 px-3 text-center w-12">#</th>
+                  <th className="py-3.5 px-3 text-center w-14">ลำดับ</th>
                   <th className="py-3.5 px-3 w-48">ข้อมูลนักเรียน</th>
                   <th className="py-3.5 px-3 text-center w-28">ระดับชั้น/ห้อง</th>
                   <th className="py-3.5 px-4 min-w-[340px]">รายการยาประจำตัว / ขนาดยา / เวลาที่รับประทาน</th>

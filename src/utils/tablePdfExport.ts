@@ -11,6 +11,7 @@ export interface PdfReportOptions {
   title: string;
   subtitle?: string;
   schoolName?: string;
+  schoolLogo?: string;
   reportDate?: string;
   columns: PdfColumn[];
   rows: Record<string, any>[];
@@ -22,20 +23,13 @@ export interface PdfReportOptions {
 export const exportTableAsPDF = (options: PdfReportOptions) => {
   const {
     title,
-    subtitle = 'ระบบบริหารจัดการห้องพยาบาลโรงเรียนสำหรับนักเรียนพิการ',
-    schoolName = 'ศูนย์การศึกษาพิเศษ ประจำจังหวัดชัยนาท',
-    reportDate = new Date().toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
+    schoolName = 'โรงเรียนศึกษาพิเศษชัยนาท',
+    schoolLogo,
     columns,
     rows,
     summaryStats = [],
     signatureTitle = 'พยาบาลวิชาชีพ / เจ้าหน้าที่ห้องพยาบาล',
-    showIndex = false
+    showIndex = true
   } = options;
 
   // Build full HTML printable document with proper Thai fonts, table border, headers, page breaks
@@ -51,6 +45,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
 <head>
   <meta charset="UTF-8">
   <title>${title} - ${schoolName}</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
     
@@ -70,9 +65,18 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       font-size: 13px;
       line-height: 1.4;
       color: #1e293b;
-      background: #fff;
+      background: #f8fafc;
       margin: 0;
-      padding: 15px;
+      padding: 0;
+    }
+
+    .report-wrapper {
+      max-width: 1100px;
+      margin: 15px auto;
+      background: #fff;
+      padding: 24px 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
     .header-container {
@@ -80,6 +84,13 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       margin-bottom: 16px;
       border-bottom: 2px solid #0f766e;
       padding-bottom: 12px;
+    }
+
+    .school-logo-img {
+      height: 65px;
+      max-width: 150px;
+      object-fit: contain;
+      margin-bottom: 6px;
     }
 
     .school-name {
@@ -93,13 +104,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       font-size: 16px;
       font-weight: 600;
       color: #0f172a;
-      margin: 4px 0;
-    }
-
-    .report-meta {
-      font-size: 11px;
-      color: #64748b;
-      margin: 0;
+      margin: 6px 0 0 0;
     }
 
     .stats-bar {
@@ -145,45 +150,13 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     }
 
     td {
-      padding: 6px;
+      padding: 6px 8px;
       border: 1px solid #cbd5e1;
       vertical-align: top;
     }
 
     tr:nth-child(even) {
       background-color: #f8fafc !important;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-    }
-
-    .badge-rose {
-      background: #ffe4e6 !important;
-      color: #9f1239 !important;
-      border: 1px solid #fecdd3;
-    }
-
-    .badge-amber {
-      background: #fef3c7 !important;
-      color: #92400e !important;
-      border: 1px solid #fde68a;
-    }
-
-    .badge-emerald {
-      background: #d1fae5 !important;
-      color: #065f46 !important;
-      border: 1px solid #a7f3d0;
-    }
-
-    .badge-purple {
-      background: #f3e8ff !important;
-      color: #6b21a8 !important;
-      border: 1px solid #e9d5ff;
     }
 
     .footer-signature {
@@ -195,7 +168,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
 
     .signature-box {
       text-align: center;
-      width: 240px;
+      width: 250px;
       font-size: 12px;
     }
 
@@ -206,26 +179,58 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     }
 
     .no-print-bar {
-      background: #f1f5f9;
-      padding: 10px 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
+      background: #ffffff;
+      padding: 12px 24px;
+      margin: 0 auto 10px auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border: 1px solid #cbd5e1;
+      border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 99;
+    }
+
+    .btn-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-download {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+
+    .btn-download:hover {
+      background: #0369a1;
     }
 
     .btn-print {
       background: #0f766e;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 9px 18px;
       font-family: inherit;
       font-size: 13px;
       font-weight: 600;
       border-radius: 6px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
     }
 
     .btn-print:hover {
@@ -237,7 +242,15 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
         display: none !important;
       }
       body {
+        background: #fff;
         padding: 0;
+      }
+      .report-wrapper {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
       }
     }
   </style>
@@ -245,81 +258,112 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
 <body>
   <div class="no-print-bar">
     <div>
-      <strong>ตัวอย่างเอกสารรายงานสำหรับบันทึกเป็น PDF หรือสั่งพิมพ์</strong>
-      <div style="font-size: 11px; color: #64748b;">กดปุ่ม "พิมพ์ / บันทึกเป็น PDF" ด้านขวา หรือใช้คำสั่งลัด Ctrl+P (Cmd+P) แล้วเลือก Destination เป็น "Save as PDF"</div>
+      <strong style="font-size: 14px; color: #0f172a;">ระบบออกรายงาน PDF (${schoolName})</strong>
+      <div style="font-size: 11px; color: #64748b;">กดปุ่ม "ดาวน์โหลดไฟล์ PDF" เพื่อบันทึกไฟล์ .pdf ลงเครื่อง หรือกด "พิมพ์เอกสาร"</div>
     </div>
-    <button class="btn-print" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF (Save as PDF)</button>
+    <div class="btn-actions">
+      <button class="btn-download" id="btn-download-pdf">
+        <span>📥</span> ดาวน์โหลดไฟล์ PDF (.pdf)
+      </button>
+      <button class="btn-print" onclick="window.print()">
+        <span>🖨️</span> พิมพ์เอกสาร (Print / Save as PDF)
+      </button>
+    </div>
   </div>
 
-  <div class="header-container">
-    <div class="school-name">${schoolName}</div>
-    <div class="report-title">${title}</div>
-    <div class="report-meta">${subtitle} | ข้อมูล ณ วันที่ ${reportDate} | รวมทั้งสิ้น ${rows.length} รายการ</div>
-  </div>
+  <div class="report-wrapper" id="report-content">
+    <div class="header-container">
+      ${schoolLogo ? `<div><img src="${schoolLogo}" class="school-logo-img" alt="ตราสัญลักษณ์โรงเรียน" /></div>` : ''}
+      <div class="school-name">${schoolName}</div>
+      <div class="report-title">${title}</div>
+    </div>
 
-  ${summaryStats.length > 0 ? `
-  <div class="stats-bar">
-    ${summaryStats.map(s => `
-      <div class="stat-item">
-        <span class="stat-label">${s.label}:</span>
-        <span class="stat-value">${s.value}</span>
-      </div>
-    `).join('')}
-  </div>
-  ` : ''}
-
-  <table>
-    <thead>
-      <tr>
-        ${showIndex ? `<th style="width: 40px; text-align: center;">ลำดับ</th>` : ''}
-        ${columns.map(c => `
-          <th style="${c.width ? `width: ${c.width};` : ''} text-align: ${c.align || 'left'};">
-            ${c.header}
-          </th>
-        `).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      ${rows.length === 0 ? `
-        <tr>
-          <td colspan="${columns.length + (showIndex ? 1 : 0)}" style="text-align: center; padding: 20px; color: #94a3b8;">
-            ไม่พบข้อมูลตรงตามเงื่อนไข
-          </td>
-        </tr>
-      ` : rows.map((row, idx) => `
-        <tr>
-          ${showIndex ? `<td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>` : ''}
-          ${columns.map(c => {
-            const rawVal = row[c.key];
-            const displayVal = rawVal !== undefined && rawVal !== null && rawVal !== '' 
-              ? (typeof rawVal === 'string' ? rawVal.replace(/\n/g, '<br/>') : rawVal) 
-              : '-';
-            return `
-              <td style="text-align: ${c.align || 'left'};">
-                ${displayVal}
-              </td>
-            `;
-          }).join('')}
-        </tr>
+    ${summaryStats.length > 0 ? `
+    <div class="stats-bar">
+      ${summaryStats.map(s => `
+        <div class="stat-item">
+          <span class="stat-label">${s.label}:</span>
+          <span class="stat-value">${s.value}</span>
+        </div>
       `).join('')}
-    </tbody>
-  </table>
+    </div>
+    ` : ''}
 
-  <div class="footer-signature">
-    <div class="signature-box">
-      <div class="signature-line"></div>
-      <div>(...............................................................)</div>
-      <div style="margin-top: 3px; font-weight: 500;">${signatureTitle}</div>
-      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">ผู้รับรองและจัดทำรายงาน</div>
+    <table>
+      <thead>
+        <tr>
+          ${showIndex ? `<th style="width: 45px; text-align: center;">ลำดับ</th>` : ''}
+          ${columns.map(c => `
+            <th style="${c.width ? `width: ${c.width};` : ''} text-align: ${c.align || 'left'};">
+              ${c.header}
+            </th>
+          `).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.length === 0 ? `
+          <tr>
+            <td colspan="${columns.length + (showIndex ? 1 : 0)}" style="text-align: center; padding: 20px; color: #94a3b8;">
+              ไม่พบข้อมูลตรงตามเงื่อนไข
+            </td>
+          </tr>
+        ` : rows.map((row, idx) => `
+          <tr>
+            ${showIndex ? `<td style="text-align: center; font-weight: 600; color: #475569;">${idx + 1}</td>` : ''}
+            ${columns.map(c => {
+              const rawVal = row[c.key];
+              const displayVal = rawVal !== undefined && rawVal !== null && rawVal !== '' 
+                ? (typeof rawVal === 'string' ? rawVal.replace(/\n/g, '<br/>') : rawVal) 
+                : '-';
+              return `
+                <td style="text-align: ${c.align || 'left'};">
+                  ${displayVal}
+                </td>
+              `;
+            }).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <div class="footer-signature">
+      <div class="signature-box">
+        <div class="signature-line"></div>
+        <div>(...............................................................)</div>
+        <div style="margin-top: 3px; font-weight: 500;">${signatureTitle}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">ผู้รับรองและจัดทำรายงาน</div>
+      </div>
     </div>
   </div>
 
   <script>
-    // Auto trigger print dialog after page renders
-    window.addEventListener('load', () => {
-      setTimeout(() => {
+    // Direct PDF download via html2pdf
+    document.getElementById('btn-download-pdf').addEventListener('click', function() {
+      const element = document.getElementById('report-content');
+      const filename = '${title.replace(/[\\/\\\\:*?"<>|]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf';
+      const opt = {
+        margin:       [10, 8, 12, 8],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+      
+      this.innerHTML = '<span>⏳</span> กำลังจัดทำไฟล์ PDF...';
+      this.disabled = true;
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        this.innerHTML = '<span>✅</span> ดาวน์โหลดสำเร็จ!';
+        setTimeout(() => {
+          this.innerHTML = '<span>📥</span> ดาวน์โหลดไฟล์ PDF (.pdf)';
+          this.disabled = false;
+        }, 2500);
+      }).catch(err => {
+        console.error('PDF download error:', err);
         window.print();
-      }, 500);
+        this.innerHTML = '<span>📥</span> ดาวน์โหลดไฟล์ PDF (.pdf)';
+        this.disabled = false;
+      });
     });
   </script>
 </body>
