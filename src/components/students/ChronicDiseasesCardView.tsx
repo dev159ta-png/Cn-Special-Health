@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
 import { exportTableAsPDF } from '../../utils/tablePdfExport';
+import { StudentAvatar } from '../common/StudentAvatar';
 
 interface ChronicDiseasesCardViewProps {
   onSelectStudent: (student: Student, subTab?: string) => void;
@@ -105,7 +106,7 @@ export const ChronicDiseasesCardView: React.FC<ChronicDiseasesCardViewProps> = (
   // Apply filters
   const filteredStudents = useMemo(() => {
     return studentsWithDiseases.filter(s => {
-      if (filterClassroom !== 'all' && s.classroom !== filterClassroom) return false;
+      if (filterClassroom !== 'all' && s.classroom !== filterClassroom && s.grade !== filterClassroom) return false;
 
       const diseases = s.chronicDiseases || [];
 
@@ -258,27 +259,23 @@ export const ChronicDiseasesCardView: React.FC<ChronicDiseasesCardViewProps> = (
   const handleDownloadPdf = () => {
     exportTableAsPDF({
       title: 'รายงานรายชื่อนักเรียนที่มีโรคประจำตัว',
-      subtitle: `ประเภทโรค: ${filterCategory === 'all' ? 'ทุกกลุ่มโรค' : filterCategory} | ชั้นเรียน: ${filterClassroom === 'all' ? 'ทุกห้องเรียน' : filterClassroom}`,
+      subtitle: `ประเภทโรค: ${filterCategory === 'all' ? 'ทุกกลุ่มโรค' : filterCategory} | ระดับชั้น/ห้อง: ${filterClassroom === 'all' ? 'ทุกระดับชั้น/ห้อง' : filterClassroom}`,
       schoolName: systemConfig?.schoolName || 'ศูนย์การศึกษาพิเศษ ประจำจังหวัดชัยนาท',
       columns: [
-        { header: 'ลำดับ', key: 'index', width: '45px', align: 'center' },
-        { header: 'รหัส', key: 'studentCode', width: '70px', align: 'center' },
-        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '160px', align: 'left' },
-        { header: 'ห้องเรียน', key: 'classroom', width: '60px', align: 'center' },
-        { header: 'โรคประจำตัว', key: 'diseases', width: '170px', align: 'left' },
-        { header: 'อาการ / ปัจจัยกระตุ้น', key: 'symptoms', width: '170px', align: 'left' },
-        { header: 'แผนช่วยเหลือฉุกเฉิน', key: 'emergencyCare', width: '180px', align: 'left' },
-        { header: 'ผู้ปกครอง & เบอร์โทร', key: 'guardian', width: '135px', align: 'left' }
+        { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
+        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
+        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '90px', align: 'center' },
+        { header: 'โรคประจำตัว', key: 'diseases', width: '190px', align: 'left' },
+        { header: 'อาการ / ปัจจัยกระตุ้น', key: 'symptoms', width: '200px', align: 'left' },
+        { header: 'แผนช่วยเหลือฉุกเฉิน', key: 'emergencyCare', width: '220px', align: 'left' }
       ],
-      rows: filteredStudents.map((s, idx) => ({
-        index: idx + 1,
+      rows: filteredStudents.map((s) => ({
         studentCode: s.studentCode,
         fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
         classroom: s.classroom,
         diseases: (s.chronicDiseases || []).map(d => `• ${d.diseaseName}`).join('\n') || '-',
         symptoms: (s.chronicDiseases || []).map(d => `• ${d.symptoms || '-'}`).join('\n') || '-',
-        emergencyCare: (s.chronicDiseases || []).map(d => `• ${d.emergencyCare || '-'}`).join('\n') || '-',
-        guardian: `${s.guardianName || '-'}\nโทร: ${s.guardianPhone || s.emergencyPhone || '-'}`
+        emergencyCare: (s.chronicDiseases || []).map(d => `• ${d.emergencyCare || '-'}`).join('\n') || '-'
       })),
       summaryStats: [
         { label: 'จำนวนนักเรียน', value: `${filteredStudents.length} คน` },
@@ -490,13 +487,13 @@ export const ChronicDiseasesCardView: React.FC<ChronicDiseasesCardViewProps> = (
             </select>
           </div>
 
-          {/* Classroom */}
+          {/* Classroom / Grade */}
           <select
             value={filterClassroom}
             onChange={(e) => setFilterClassroom(e.target.value)}
-            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-rose-500"
+            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-rose-500 font-semibold"
           >
-            <option value="all">ทุกห้องเรียน</option>
+            <option value="all">ทุกระดับชั้น/ห้อง</option>
             {(systemConfig.classrooms || []).map(c => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
@@ -570,9 +567,10 @@ export const ChronicDiseasesCardView: React.FC<ChronicDiseasesCardViewProps> = (
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center space-x-2.5">
-                          <img
-                            src={student.photoUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200'}
-                            alt={student.firstName}
+                          <StudentAvatar
+                            src={student.photoUrl}
+                            gender={student.gender}
+                            name={student.firstName}
                             className="w-9 h-9 rounded-xl object-cover border border-slate-200 flex-shrink-0"
                           />
                           <div className="min-w-0">
@@ -703,9 +701,10 @@ export const ChronicDiseasesCardView: React.FC<ChronicDiseasesCardViewProps> = (
                 <div>
                   {/* Card Header */}
                   <div className="p-4 border-b border-slate-100 flex items-start space-x-3">
-                    <img
-                      src={student.photoUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200'}
-                      alt={student.firstName}
+                    <StudentAvatar
+                      src={student.photoUrl}
+                      gender={student.gender}
+                      name={student.firstName}
                       className="w-13 h-13 rounded-2xl object-cover border-2 border-slate-100 shadow-2xs flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">

@@ -20,6 +20,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { QRCodeModal } from '../common/QRCodeModal';
+import { StudentAvatar } from '../common/StudentAvatar';
 
 interface EmergencyViewProps {
   onSelectStudent: (student: Student, initialTab?: string) => void;
@@ -66,7 +67,7 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
       if (filterRisk === 'medical-device' && !hasDevice) return false;
 
       // Classroom filter
-      if (filterClassroom !== 'all' && s.classroom !== filterClassroom) return false;
+      if (filterClassroom !== 'all' && s.classroom !== filterClassroom && s.grade !== filterClassroom) return false;
 
       // Search query
       if (searchQuery.trim()) {
@@ -203,13 +204,13 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
         {/* Classroom selector */}
         <div className="flex items-center space-x-2 pt-1 border-t border-slate-100 text-xs text-slate-500">
           <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <span>กรองตามห้องเรียน:</span>
+          <span>กรองตามระดับชั้น/ห้อง:</span>
           <select
             value={filterClassroom}
             onChange={(e) => setFilterClassroom(e.target.value)}
-            className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-white"
+            className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white"
           >
-            <option value="all">ทุกห้องเรียน</option>
+            <option value="all">ทุกระดับชั้น/ห้อง</option>
             {classrooms.map(c => (
               <option key={c} value={c}>ห้อง {c}</option>
             ))}
@@ -255,10 +256,11 @@ export const EmergencyView: React.FC<EmergencyViewProps> = ({
                 <div className="p-5 pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center space-x-3.5">
-                      <img
+                      <StudentAvatar
                         src={student.photoUrl}
-                        alt={student.firstName}
-                        className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-xs"
+                        gender={student.gender}
+                        name={student.firstName}
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-xs flex-shrink-0"
                       />
                       <div>
                         <div className="flex items-center space-x-2">

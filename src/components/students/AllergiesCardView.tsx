@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
 import { exportTableAsPDF } from '../../utils/tablePdfExport';
+import { StudentAvatar } from '../common/StudentAvatar';
 
 interface AllergiesCardViewProps {
   onSelectStudent: (student: Student, subTab?: string) => void;
@@ -119,8 +120,8 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
   // Apply search, category, and duplicate filters
   const filteredStudents = useMemo(() => {
     return allergyStudents.filter(s => {
-      // Classroom filter
-      if (filterClassroom !== 'all' && s.classroom !== filterClassroom) return false;
+      // Unified Classroom / Grade filter
+      if (filterClassroom !== 'all' && s.classroom !== filterClassroom && s.grade !== filterClassroom) return false;
 
       // Filter by allergy type
       const hasDrug = (s.drugAllergies || []).length > 0;
@@ -285,20 +286,17 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
   const handleDownloadPdf = () => {
     exportTableAsPDF({
       title: 'รายงานรายชื่อนักเรียนที่มีประวัติแพ้ยาและแพ้อาหาร',
-      subtitle: `ตัวกรอง: ${filterType === 'all' ? 'ทั้งหมด' : filterType === 'drug' ? 'เฉพาะแพ้ยา' : filterType === 'food' ? 'เฉพาะแพ้อาหาร' : 'รุนแรงมาก'} | ชั้นเรียน: ${filterClassroom === 'all' ? 'ทุกห้องเรียน' : filterClassroom}`,
+      subtitle: `ตัวกรอง: ${filterType === 'all' ? 'ทั้งหมด' : filterType === 'drug' ? 'เฉพาะแพ้ยา' : filterType === 'food' ? 'เฉพาะแพ้อาหาร' : 'รุนแรงมาก'} | ระดับชั้น/ห้อง: ${filterClassroom === 'all' ? 'ทุกระดับชั้น/ห้อง' : filterClassroom}`,
       schoolName: systemConfig?.schoolName || 'ศูนย์การศึกษาพิเศษ ประจำจังหวัดชัยนาท',
       columns: [
-        { header: 'ลำดับ', key: 'index', width: '45px', align: 'center' },
-        { header: 'รหัส', key: 'studentCode', width: '70px', align: 'center' },
-        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '160px', align: 'left' },
-        { header: 'ห้องเรียน', key: 'classroom', width: '60px', align: 'center' },
-        { header: 'หมู่เลือด', key: 'bloodType', width: '55px', align: 'center' },
-        { header: 'ประวัติแพ้ยา (ความรุนแรง / อาการ)', key: 'drugAllergies', width: '210px', align: 'left' },
-        { header: 'ประวัติแพ้อาหาร (ความรุนแรง / อาการ)', key: 'foodAllergies', width: '210px', align: 'left' },
-        { header: 'ผู้ปกครอง & เบอร์โทรติดต่อ', key: 'guardian', width: '140px', align: 'left' }
+        { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
+        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
+        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '90px', align: 'center' },
+        { header: 'หมู่เลือด', key: 'bloodType', width: '65px', align: 'center' },
+        { header: 'ประวัติแพ้ยา (ความรุนแรง / อาการ)', key: 'drugAllergies', width: '250px', align: 'left' },
+        { header: 'ประวัติแพ้อาหาร (ความรุนแรง / อาการ)', key: 'foodAllergies', width: '250px', align: 'left' }
       ],
-      rows: filteredStudents.map((s, idx) => ({
-        index: idx + 1,
+      rows: filteredStudents.map((s) => ({
         studentCode: s.studentCode,
         fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
         classroom: s.classroom,
@@ -308,8 +306,7 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
           : '-',
         foodAllergies: (s.foodAllergies || []).length > 0
           ? (s.foodAllergies || []).map(f => `• ${f.foodName} [${f.severity}] : ${f.reaction || '-'}`).join('\n')
-          : '-',
-        guardian: `${s.guardianName || '-'}\nโทร: ${s.guardianPhone || s.emergencyPhone || '-'}`
+          : '-'
       })),
       summaryStats: [
         { label: 'จำนวนนักเรียนที่พบ', value: `${filteredStudents.length} คน` },
@@ -539,14 +536,14 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <div className="flex items-center space-x-1.5 text-xs text-slate-500 mr-1">
             <Filter className="w-3.5 h-3.5" />
-            <span>ห้องเรียน:</span>
+            <span>ระดับชั้น/ห้อง:</span>
           </div>
           <select
             value={filterClassroom}
             onChange={(e) => setFilterClassroom(e.target.value)}
-            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-rose-500"
+            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-rose-500 font-semibold"
           >
-            <option value="all">ทุกห้องเรียน</option>
+            <option value="all">ทุกระดับชั้น/ห้อง</option>
             {(systemConfig.classrooms || []).map(c => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
@@ -634,9 +631,10 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center space-x-2.5">
-                          <img
-                            src={student.photoUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200'}
-                            alt={student.firstName}
+                          <StudentAvatar
+                            src={student.photoUrl}
+                            gender={student.gender}
+                            name={student.firstName}
                             className="w-9 h-9 rounded-xl object-cover border border-slate-200 flex-shrink-0"
                           />
                           <div className="min-w-0">
@@ -785,9 +783,10 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
                 <div>
                   {/* Card Header */}
                   <div className="p-4 border-b border-slate-100 flex items-start space-x-3">
-                    <img
-                      src={student.photoUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200'}
-                      alt={student.firstName}
+                    <StudentAvatar
+                      src={student.photoUrl}
+                      gender={student.gender}
+                      name={student.firstName}
                       className="w-13 h-13 rounded-2xl object-cover border-2 border-slate-100 shadow-2xs flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">

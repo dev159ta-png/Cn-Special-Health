@@ -15,6 +15,7 @@ import {
 } from '../../types';
 import { StudentIndividualVisitHistoryView } from '../infirmary/StudentIndividualVisitHistoryView';
 import { StudentDocumentsSection } from './StudentDocumentsSection';
+import { StudentAvatar } from '../common/StudentAvatar';
 import { VACCINE_GROUPED_OPTIONS, ALL_VACCINE_NAMES } from '../../data/vaccineSchedule';
 import { 
   Heart, 
@@ -275,9 +276,10 @@ export const StudentHealthView: React.FC<StudentHealthViewProps> = ({
               <ArrowLeft className="w-5 h-5" />
             </button>
 
-            <img
+            <StudentAvatar
               src={student.photoUrl}
-              alt={student.firstName}
+              gender={student.gender}
+              name={student.firstName}
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-teal-100 shadow-xs flex-shrink-0"
             />
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Student } from '../../types';
 import { QrCode, Printer, Download, ShieldCheck, X, AlertTriangle, Phone, Heart } from 'lucide-react';
+import { StudentAvatar } from './StudentAvatar';
 
 interface QRCodeModalProps {
   student: Student;
@@ -60,10 +61,11 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
             </div>
 
             <div className="flex items-center justify-center space-x-3 my-3">
-              <img
+              <StudentAvatar
                 src={student.photoUrl}
-                alt={student.firstName}
-                className="w-16 h-16 rounded-xl object-cover border-2 border-slate-200 shadow-xs"
+                gender={student.gender}
+                name={student.firstName}
+                className="w-16 h-16 rounded-xl object-cover border-2 border-slate-200 shadow-xs flex-shrink-0"
               />
               <div className="text-left">
                 <h4 className="font-heading font-bold text-slate-900 text-base">

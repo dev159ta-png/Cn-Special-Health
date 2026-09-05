@@ -26,6 +26,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
+import { StudentAvatar } from '../common/StudentAvatar';
 
 interface StudentNutritionCardViewProps {
   onSelectStudent: (student: Student, subTab?: string) => void;
@@ -116,7 +117,7 @@ export const StudentNutritionCardView: React.FC<StudentNutritionCardViewProps> =
   const filteredData = useMemo(() => {
     return studentNutritionData.filter(({ student, latest, bmi, bmiStatus }) => {
       // Classroom filter
-      if (filterClassroom !== 'all' && student.classroom !== filterClassroom) return false;
+      if (filterClassroom !== 'all' && student.classroom !== filterClassroom && student.grade !== filterClassroom) return false;
 
       // BMI Status filter
       if (filterBmiStatus !== 'all' && bmiStatus !== filterBmiStatus) return false;
@@ -395,9 +396,9 @@ export const StudentNutritionCardView: React.FC<StudentNutritionCardViewProps> =
           <select
             value={filterClassroom}
             onChange={(e) => setFilterClassroom(e.target.value)}
-            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-emerald-500"
+            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-emerald-500 font-semibold"
           >
-            <option value="all">ทุกห้องเรียน</option>
+            <option value="all">ทุกระดับชั้น/ห้อง</option>
             {(systemConfig.classrooms || []).map(c => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
@@ -450,9 +451,10 @@ export const StudentNutritionCardView: React.FC<StudentNutritionCardViewProps> =
                 <div>
                   {/* Card Header */}
                   <div className="p-4 border-b border-slate-100 flex items-start space-x-3">
-                    <img
-                      src={student.photoUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200'}
-                      alt={student.firstName}
+                    <StudentAvatar
+                      src={student.photoUrl}
+                      gender={student.gender}
+                      name={student.firstName}
                       className="w-13 h-13 rounded-2xl object-cover border-2 border-slate-100 shadow-2xs flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">

@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Student } from '../../types';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
 import { X, Save, User, ShieldCheck, Upload, Image as ImageIcon, Trash2, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { StudentAvatar } from '../common/StudentAvatar';
 
 interface StudentFormModalProps {
   studentToEdit?: Student | null;
@@ -41,26 +42,30 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'url'>('upload');
 
-  // Compute available grades from configured classrooms
-  const availableGrades = useMemo(() => {
-    const fromConfig = Array.from(new Set((systemConfig.classrooms || []).map(c => c.grade).filter(Boolean)));
-    if (grade && !fromConfig.includes(grade)) {
-      fromConfig.unshift(grade);
+  // Compute available classrooms from system configuration
+  const availableClassrooms = useMemo(() => {
+    const list = (systemConfig.classrooms || []).map(c => c.name);
+    if (classroom && !list.includes(classroom)) {
+      list.unshift(classroom);
     }
-    return fromConfig.length > 0 ? fromConfig : ['เตรียมความพร้อม', 'อนุบาล 1-3', 'ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6', 'ม.1', 'ม.2', 'ม.3', 'ม.ปลาย'];
-  }, [systemConfig.classrooms, grade]);
+    return list.length > 0 ? list : ['เตรียมความพร้อม 1', 'อนุบาล 1/1', 'ป.1/1', 'ป.2/1', 'ป.3/1', 'ป.4/1', 'ป.5/1', 'ป.6/1', 'ม.1/1', 'ม.2/1', 'ม.3/1'];
+  }, [systemConfig.classrooms, classroom]);
 
-  // Handle classroom change with auto-fill homeroom teacher and grade
+  // Handle unified classroom change with auto-fill homeroom teacher and grade
   const handleClassroomChange = (val: string) => {
     setClassroom(val);
     const matched = (systemConfig.classrooms || []).find(c => c.name === val);
     if (matched) {
       if (matched.grade) {
         setGrade(matched.grade);
+      } else {
+        setGrade(val);
       }
-      if (matched.homeroomTeacher && !homeroomTeacher) {
+      if (matched.homeroomTeacher) {
         setHomeroomTeacher(matched.homeroomTeacher);
       }
+    } else {
+      setGrade(val);
     }
   };
 
@@ -331,31 +336,21 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             </div>
           </div>
 
-          {/* Education & Classroom */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Education & Classroom (Unified into ระดับชั้น/ห้อง) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">ระดับชั้น *</label>
-              <select
-                value={grade}
-                onChange={e => setGrade(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:ring-teal-500 font-medium"
-              >
-                {availableGrades.map(g => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">ห้องเรียน *</label>
+              <label className="block text-slate-700 font-semibold mb-1 flex items-center space-x-1">
+                <span>ระดับชั้น/ห้อง *</span>
+                <span className="text-[10px] text-teal-600 font-normal">(จัดการตัวเลือกได้ที่เมนูตั้งค่า)</span>
+              </label>
               <select
                 value={classroom}
                 onChange={e => handleClassroomChange(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:ring-teal-500 font-semibold text-slate-800"
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:ring-teal-500 font-bold text-slate-900 bg-white"
               >
-                {(systemConfig.classrooms || []).map(c => (
-                  <option key={c.name} value={c.name}>
-                    {c.name} ({c.grade})
+                {availableClassrooms.map(roomName => (
+                  <option key={roomName} value={roomName}>
+                    {roomName}
                   </option>
                 ))}
               </select>
@@ -368,6 +363,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                 required
                 value={homeroomTeacher}
                 onChange={e => setHomeroomTeacher(e.target.value)}
+                placeholder="เช่น ครูสมใจ ห่วงใยศิษย์"
                 className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:ring-teal-500"
               />
             </div>
@@ -466,33 +462,30 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              {/* Photo Preview Thumbnail */}
+              {/* Photo Preview Thumbnail with Demo Avatar Fallback */}
               <div className="relative shrink-0">
-                {photoUrl ? (
-                  <div className="relative group">
-                    <img
-                      src={photoUrl}
-                      alt="Student"
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-teal-500 shadow-sm"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200';
-                      }}
-                    />
+                <div className="relative group">
+                  <StudentAvatar
+                    src={photoUrl}
+                    gender={gender}
+                    name={firstName || 'นักเรียน'}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-teal-500 shadow-sm"
+                  />
+                  {photoUrl ? (
                     <button
                       type="button"
                       onClick={() => setPhotoUrl('')}
                       className="absolute -top-2 -right-2 p-1 bg-rose-600 text-white rounded-full shadow-md hover:bg-rose-700 transition-colors"
-                      title="ลบรูปถ่าย"
+                      title="ใช้รูปจำลองแทน"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
-                  </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-slate-200 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-[10px]">
-                    <User className="w-6 h-6 text-slate-300 mb-1" />
-                    <span>ไม่มีรูป</span>
-                  </div>
-                )}
+                  ) : (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-slate-800/80 text-white rounded text-[9px] font-semibold whitespace-nowrap">
+                      รูปจำลอง
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Input Area */}

@@ -16,6 +16,7 @@ export interface PdfReportOptions {
   rows: Record<string, any>[];
   summaryStats?: { label: string; value: string | number }[];
   signatureTitle?: string;
+  showIndex?: boolean;
 }
 
 export const exportTableAsPDF = (options: PdfReportOptions) => {
@@ -33,7 +34,8 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     columns,
     rows,
     summaryStats = [],
-    signatureTitle = 'พยาบาลวิชาชีพ / เจ้าหน้าที่ห้องพยาบาล'
+    signatureTitle = 'พยาบาลวิชาชีพ / เจ้าหน้าที่ห้องพยาบาล',
+    showIndex = false
   } = options;
 
   // Build full HTML printable document with proper Thai fonts, table border, headers, page breaks
@@ -269,7 +271,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
   <table>
     <thead>
       <tr>
-        <th style="width: 40px; text-align: center;">ลำดับ</th>
+        ${showIndex ? `<th style="width: 40px; text-align: center;">ลำดับ</th>` : ''}
         ${columns.map(c => `
           <th style="${c.width ? `width: ${c.width};` : ''} text-align: ${c.align || 'left'};">
             ${c.header}
@@ -280,18 +282,24 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     <tbody>
       ${rows.length === 0 ? `
         <tr>
-          <td colspan="${columns.length + 1}" style="text-align: center; padding: 20px; color: #94a3b8;">
+          <td colspan="${columns.length + (showIndex ? 1 : 0)}" style="text-align: center; padding: 20px; color: #94a3b8;">
             ไม่พบข้อมูลตรงตามเงื่อนไข
           </td>
         </tr>
       ` : rows.map((row, idx) => `
         <tr>
-          <td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>
-          ${columns.map(c => `
-            <td style="text-align: ${c.align || 'left'};">
-              ${row[c.key] !== undefined && row[c.key] !== null ? row[c.key] : '-'}
-            </td>
-          `).join('')}
+          ${showIndex ? `<td style="text-align: center; font-weight: 600; color: #64748b;">${idx + 1}</td>` : ''}
+          ${columns.map(c => {
+            const rawVal = row[c.key];
+            const displayVal = rawVal !== undefined && rawVal !== null && rawVal !== '' 
+              ? (typeof rawVal === 'string' ? rawVal.replace(/\n/g, '<br/>') : rawVal) 
+              : '-';
+            return `
+              <td style="text-align: ${c.align || 'left'};">
+                ${displayVal}
+              </td>
+            `;
+          }).join('')}
         </tr>
       `).join('')}
     </tbody>

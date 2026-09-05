@@ -350,7 +350,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
           }`}
         >
           <GraduationCap className="w-4 h-4" />
-          <span>ชั้นเรียน & ห้องเรียน ({systemConfig.classrooms?.length || 0})</span>
+          <span>ระดับชั้น/ห้อง ({systemConfig.classrooms?.length || 0})</span>
         </button>
 
         <button
@@ -780,27 +780,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
           {/* Top Summary Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
-              <div className="text-[11px] text-slate-500 font-semibold">ห้องเรียนทั้งหมด</div>
+              <div className="text-[11px] text-slate-500 font-semibold">ระดับชั้น/ห้องทั้งหมด</div>
               <div className="text-xl font-heading font-bold text-slate-900 mt-1">
                 {(systemConfig.classrooms || []).length} <span className="text-xs font-normal text-slate-400">ห้อง</span>
               </div>
             </div>
             <div className="bg-white p-3.5 rounded-2xl border border-purple-100 shadow-2xs">
-              <div className="text-[11px] text-purple-600 font-semibold">จำนวนระดับชั้น</div>
+              <div className="text-[11px] text-purple-600 font-semibold">ครูประจำชั้นที่ระบุ</div>
               <div className="text-xl font-heading font-bold text-purple-700 mt-1">
-                {new Set((systemConfig.classrooms || []).map(c => c.grade)).size} <span className="text-xs font-normal text-purple-400">ระดับชั้น</span>
+                {(systemConfig.classrooms || []).filter(c => !!c.homeroomTeacher).length} <span className="text-xs font-normal text-purple-400">ท่าน</span>
               </div>
             </div>
             <div className="bg-white p-3.5 rounded-2xl border border-teal-100 shadow-2xs">
-              <div className="text-[11px] text-teal-600 font-semibold">นักเรียนที่มีห้องเรียน</div>
+              <div className="text-[11px] text-teal-600 font-semibold">นักเรียนที่มีระดับชั้น/ห้อง</div>
               <div className="text-xl font-heading font-bold text-teal-700 mt-1">
                 {students.filter(s => !!s.classroom).length} <span className="text-xs font-normal text-teal-400">คน</span>
               </div>
             </div>
             <div className="bg-white p-3.5 rounded-2xl border border-emerald-100 shadow-2xs">
-              <div className="text-[11px] text-emerald-600 font-semibold">สิทธิ์จัดการข้อมูล</div>
+              <div className="text-[11px] text-emerald-600 font-semibold">การจัดการตัวเลือก</div>
               <div className="text-sm font-heading font-bold text-emerald-700 mt-1">
-                ผู้ดูแลระบบ (Admin)
+                ระดับชั้น/ห้อง รวมในที่เดียว
               </div>
             </div>
           </div>
@@ -812,7 +812,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="ค้นหาระดับชั้น, ชื่อห้องเรียน, ครูประจำชั้น..."
+                  placeholder="ค้นหาระดับชั้น/ห้อง, ครูประจำชั้น..."
                   value={classroomSearch}
                   onChange={e => setClassroomSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none text-xs"
@@ -852,7 +852,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  ประถมศึกษา (ป.1 - ป.6)
+                  ประถมศึกษา
                 </button>
                 <button
                   type="button"
@@ -863,7 +863,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  มัธยมศึกษา (ม.1 - ม.ปลาย)
+                  มัธยมศึกษา
                 </button>
                 <button
                   type="button"
@@ -889,7 +889,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
               className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center justify-center space-x-1.5 shadow-xs transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span>+ เพิ่มห้องเรียนใหม่</span>
+              <span>+ เพิ่มระดับชั้น/ห้องใหม่</span>
             </button>
           </div>
 
@@ -900,8 +900,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
                 <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3 w-14 text-center">ลำดับ</th>
-                    <th className="px-4 py-3">ระดับชั้น (Grade)</th>
-                    <th className="px-4 py-3">ชื่อห้องเรียน (Classroom)</th>
+                    <th className="px-4 py-3">ระดับชั้น/ห้อง</th>
                     <th className="px-4 py-3">ครูประจำชั้น</th>
                     <th className="px-4 py-3">อาคาร / ห้อง</th>
                     <th className="px-4 py-3 text-center">นักเรียนในระบบ</th>
@@ -911,9 +910,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
                 <tbody className="divide-y divide-slate-100">
                   {filteredClassrooms.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                      <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
                         <GraduationCap className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                        <div>ไม่พบข้อมูลห้องเรียนตามเงื่อนไขที่ค้นหา</div>
+                        <div>ไม่พบข้อมูลระดับชั้น/ห้องตามเงื่อนไขที่ค้นหา</div>
                         <button
                           type="button"
                           onClick={() => {
@@ -922,7 +921,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
                           }}
                           className="mt-3 px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 font-semibold hover:bg-purple-200"
                         >
-                          + เพิ่มห้องเรียนใหม่ตอนนี้
+                          + เพิ่มระดับชั้น/ห้องใหม่ตอนนี้
                         </button>
                       </td>
                     </tr>
@@ -934,15 +933,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'config
                           <td className="px-4 py-3 text-center font-bold text-slate-400">
                             {displayIndex + 1}
                           </td>
-                          <td className="px-4 py-3 font-semibold text-slate-800">
-                            <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                              {c.grade}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 font-bold text-slate-900 text-sm">
-                            {c.name}
+                          <td className="px-4 py-3">
+                            <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                {c.name}
+                              </span>
+                            </div>
                             {c.description && (
-                              <span className="block text-[11px] font-normal text-slate-400">
+                              <span className="block text-[11px] font-normal text-slate-400 mt-0.5">
                                 {c.description}
                               </span>
                             )}

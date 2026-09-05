@@ -18,6 +18,7 @@ import {
   Printer
 } from 'lucide-react';
 import { QRCodeModal } from '../common/QRCodeModal';
+import { StudentAvatar } from '../common/StudentAvatar';
 
 interface StudentListViewProps {
   onSelectStudent: (student: Student, initialTab?: string) => void;
@@ -33,11 +34,17 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
   const { filteredStudentsForUser, deleteStudent, currentUser, systemConfig } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterGrade, setFilterGrade] = useState('all');
   const [filterClassroom, setFilterClassroom] = useState('all');
   const [filterGender, setFilterGender] = useState('all');
   const [filterDisability, setFilterDisability] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+  // Unified classroom/grade options
+  const unifiedClassroomOptions = useMemo(() => {
+    const fromConfig = (systemConfig.classrooms || []).map(c => c.name);
+    const fromStudents = filteredStudentsForUser.map(s => s.classroom).filter(Boolean);
+    return Array.from(new Set([...fromConfig, ...fromStudents]));
+  }, [systemConfig.classrooms, filteredStudentsForUser]);
 
   // QR Modal state
   const [selectedQRStudent, setSelectedQRStudent] = useState<Student | null>(null);
@@ -60,14 +67,16 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
         }
       }
 
-      if (filterGrade !== 'all' && s.grade !== filterGrade) return false;
-      if (filterClassroom !== 'all' && s.classroom !== filterClassroom) return false;
+      // Unified Grade / Classroom matching
+      if (filterClassroom !== 'all' && s.classroom !== filterClassroom && s.grade !== filterClassroom) {
+        return false;
+      }
       if (filterGender !== 'all' && s.gender !== filterGender) return false;
       if (filterDisability !== 'all' && !(s.disabilities || []).some(d => d.typeId === filterDisability)) return false;
 
       return true;
     });
-  }, [filteredStudentsForUser, searchQuery, filterGrade, filterClassroom, filterGender, filterDisability]);
+  }, [filteredStudentsForUser, searchQuery, filterClassroom, filterGender, filterDisability]);
 
   const handleDelete = (s: Student) => {
     if (window.confirm(`ยืนยันการลบข้อมูลนักเรียน "${s.prefix} ${s.firstName} ${s.lastName}" หรือไม่?`)) {
@@ -154,26 +163,15 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
           </div>
 
           {/* Quick Filters */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full md:w-auto text-xs">
-            <select
-              value={filterGrade}
-              onChange={e => setFilterGrade(e.target.value)}
-              className="rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-teal-500"
-            >
-              <option value="all">ทุกระดับชั้น</option>
-              <option value="ป.1">ป.1</option>
-              <option value="ป.2">ป.2</option>
-              <option value="ม.1">ม.1</option>
-            </select>
-
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full md:w-auto text-xs">
             <select
               value={filterClassroom}
               onChange={e => setFilterClassroom(e.target.value)}
-              className="rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-teal-500"
+              className="rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-teal-500 font-semibold"
             >
-              <option value="all">ทุกห้องเรียน</option>
-              {(systemConfig.classrooms || []).map(c => (
-                <option key={c.name} value={c.name}>{c.name}</option>
+              <option value="all">ทุกระดับชั้น/ห้อง</option>
+              {unifiedClassroomOptions.map(roomName => (
+                <option key={roomName} value={roomName}>{roomName}</option>
               ))}
             </select>
 
@@ -225,9 +223,10 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
                   <div>
                     {/* Card Top / Badges */}
                     <div className="p-4 pb-3 border-b border-slate-100 flex items-start space-x-3.5">
-                      <img
+                      <StudentAvatar
                         src={student.photoUrl}
-                        alt={student.firstName}
+                        gender={student.gender}
+                        name={student.firstName}
                         className="w-14 h-14 rounded-2xl object-cover ring-2 ring-slate-100 flex-shrink-0 shadow-xs"
                       />
                       <div className="flex-1 min-w-0">
@@ -381,10 +380,11 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
                   <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center space-x-3">
-                        <img
+                        <StudentAvatar
                           src={student.photoUrl}
-                          alt={student.firstName}
-                          className="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200"
+                          gender={student.gender}
+                          name={student.firstName}
+                          className="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200 flex-shrink-0"
                         />
                         <div>
                           <div className="font-bold text-slate-900">

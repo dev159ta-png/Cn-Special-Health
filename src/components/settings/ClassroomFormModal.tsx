@@ -42,9 +42,6 @@ export const ClassroomFormModal: React.FC<ClassroomFormModalProps> = ({
   existingClassrooms,
   currentIndex
 }) => {
-  const [grade, setGrade] = useState('ป.1');
-  const [customGrade, setCustomGrade] = useState('');
-  const [isCustomGrade, setIsCustomGrade] = useState(false);
   const [name, setName] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
   const [homeroomTeacher, setHomeroomTeacher] = useState('');
@@ -53,23 +50,11 @@ export const ClassroomFormModal: React.FC<ClassroomFormModalProps> = ({
 
   useEffect(() => {
     if (initialData) {
-      if (COMMON_GRADES.includes(initialData.grade)) {
-        setGrade(initialData.grade);
-        setIsCustomGrade(false);
-        setCustomGrade('');
-      } else {
-        setGrade('other');
-        setIsCustomGrade(true);
-        setCustomGrade(initialData.grade);
-      }
-      setName(initialData.name);
+      setName(initialData.name || initialData.grade || '');
       setRoomNumber(initialData.roomNumber || '');
       setHomeroomTeacher(initialData.homeroomTeacher || '');
       setDescription(initialData.description || '');
     } else {
-      setGrade('ป.1');
-      setIsCustomGrade(false);
-      setCustomGrade('');
       setName('');
       setRoomNumber('');
       setHomeroomTeacher('');
@@ -82,32 +67,34 @@ export const ClassroomFormModal: React.FC<ClassroomFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalGrade = isCustomGrade ? customGrade.trim() : grade.trim();
+    const finalName = name.trim();
 
-    if (!finalGrade) {
-      setError('กรุณาระบุหรือเลือกชั้นเรียน/ระดับชั้น');
-      return;
-    }
-
-    if (!name.trim()) {
-      setError('กรุณากรอกชื่อห้องเรียน (เช่น ป.1/1, ห้องเตรียมความพร้อม)');
+    if (!finalName) {
+      setError('กรุณากรอกระดับชั้น/ห้อง (เช่น ป.1/1, ป.1/2, ห้องเตรียมความพร้อม)');
       return;
     }
 
     // Check duplicate classroom name
     const isDuplicate = existingClassrooms.some((c, idx) => {
       if (currentIndex !== undefined && idx === currentIndex) return false;
-      return c.name.trim().toLowerCase() === name.trim().toLowerCase();
+      return c.name.trim().toLowerCase() === finalName.toLowerCase();
     });
 
     if (isDuplicate) {
-      setError(`มีห้องเรียนชื่อ "${name.trim()}" อยู่แล้วในระบบ`);
+      setError(`มีระดับชั้น/ห้อง "${finalName}" อยู่แล้วในระบบ`);
       return;
     }
 
+    // Determine derived grade from name if applicable, or use name itself
+    let derivedGrade = finalName;
+    const matchGrade = finalName.match(/^(เตรียมความพร้อม|อนุบาล\s*\d+|อ\.\d+|ป\.\d+|ม\.\d+|ม\.ปลาย)/);
+    if (matchGrade) {
+      derivedGrade = matchGrade[1];
+    }
+
     onSave({
-      grade: finalGrade,
-      name: name.trim(),
+      grade: derivedGrade,
+      name: finalName,
       roomNumber: roomNumber.trim() || undefined,
       homeroomTeacher: homeroomTeacher.trim() || undefined,
       description: description.trim() || undefined
@@ -127,10 +114,10 @@ export const ClassroomFormModal: React.FC<ClassroomFormModalProps> = ({
             </div>
             <div>
               <h3 className="font-heading font-bold text-base text-slate-800">
-                {initialData ? 'แก้ไขข้อมูลชั้นเรียน/ห้องเรียน' : 'เพิ่มตัวเลือกชั้นเรียน/ห้องเรียนใหม่'}
+                {initialData ? 'แก้ไขระดับชั้น/ห้อง' : 'เพิ่มตัวเลือกระดับชั้น/ห้องใหม่'}
               </h3>
               <p className="text-xs text-slate-500">
-                กำหนดระดับชั้นและชื่อห้องเรียนสำหรับเลือกในระบบ
+                กำหนดระดับชั้น/ห้องเรียนตัวเดียวเพื่อใช้งานในระบบอย่างสะดวก
               </p>
             </div>
           </div>
@@ -151,59 +138,23 @@ export const ClassroomFormModal: React.FC<ClassroomFormModalProps> = ({
             </div>
           )}
 
-          {/* Grade Selector */}
+          {/* Unified Grade/Classroom Name */}
           <div>
             <label className="block text-slate-700 font-semibold mb-1 flex items-center space-x-1">
               <School className="w-3.5 h-3.5 text-purple-600" />
-              <span>ระดับชั้น (Grade) *</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={isCustomGrade ? 'other' : grade}
-                onChange={e => {
-                  if (e.target.value === 'other') {
-                    setIsCustomGrade(true);
-                  } else {
-                    setIsCustomGrade(false);
-                    setGrade(e.target.value);
-                  }
-                }}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-medium bg-white focus:ring-2 focus:ring-purple-500 outline-none"
-              >
-                {COMMON_GRADES.map(g => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-                <option value="other">+ กำหนดระดับชั้นเอง...</option>
-              </select>
-
-              {isCustomGrade && (
-                <input
-                  type="text"
-                  required
-                  placeholder="ระบุระดับชั้น เช่น ม.ปลาย..."
-                  value={customGrade}
-                  onChange={e => setCustomGrade(e.target.value)}
-                  className="w-full rounded-xl border border-purple-300 p-2.5 font-bold text-purple-900 bg-purple-50 focus:ring-2 focus:ring-purple-500 outline-none"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Classroom Name */}
-          <div>
-            <label className="block text-slate-700 font-semibold mb-1">
-              ชื่อห้องเรียน / แผนก (Classroom Name) *
+              <span>ระดับชั้น/ห้อง (Grade/Room) *</span>
             </label>
             <input
               type="text"
               required
-              placeholder="เช่น ป.1/1, ป.1/2, ห้องเตรียมความพร้อม A"
+              placeholder="เช่น ป.1/1, ป.1/2, อ.1/1, ม.1/1, เตรียมความพร้อม A"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+              autoFocus
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              ชื่อนี้จะแสดงในฟอร์มข้อมูลนักเรียน และตัวกรองค้นหาในทุกหน้า
+              ระบุเป็นตัวเลือกเดียว เช่น "ป.1/1" เพื่อใช้เลือกในข้อมูลนักเรียนและตัวกรองค้นหา
             </p>
           </div>
 
@@ -265,7 +216,7 @@ export const ClassroomFormModal: React.FC<ClassroomFormModalProps> = ({
               className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center space-x-1.5 shadow-xs transition-colors"
             >
               <Save className="w-4 h-4" />
-              <span>{initialData ? 'บันทึกการแก้ไข' : 'เพิ่มห้องเรียน'}</span>
+              <span>{initialData ? 'บันทึกการแก้ไข' : 'เพิ่มระดับชั้น/ห้อง'}</span>
             </button>
           </div>
         </form>

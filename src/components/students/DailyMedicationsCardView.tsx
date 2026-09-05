@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
 import { exportTableAsPDF } from '../../utils/tablePdfExport';
+import { StudentAvatar } from '../common/StudentAvatar';
 
 interface DailyMedicationsCardViewProps {
   onSelectStudent: (student: Student, subTab?: string) => void;
@@ -106,7 +107,7 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
   // Apply filters
   const filteredStudents = useMemo(() => {
     return studentsWithDailyMeds.filter(s => {
-      if (filterClassroom !== 'all' && s.classroom !== filterClassroom) return false;
+      if (filterClassroom !== 'all' && s.classroom !== filterClassroom && s.grade !== filterClassroom) return false;
 
       const meds = s.dailyMedications || [];
 
@@ -249,29 +250,25 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
   const handleDownloadPdf = () => {
     exportTableAsPDF({
       title: 'รายงานรายชื่อนักเรียนที่ต้องรับประทานยาประจำตัว',
-      subtitle: `ตัวกรองมื้อยา: ${filterTiming === 'all' ? 'ทุกมื้อ' : filterTiming} | การจัดเก็บ: ${filterStorage === 'all' ? 'ทุกรูปแบบ' : filterStorage} | ชั้นเรียน: ${filterClassroom === 'all' ? 'ทุกห้องเรียน' : filterClassroom}`,
+      subtitle: `ตัวกรองมื้อยา: ${filterTiming === 'all' ? 'ทุกมื้อ' : filterTiming} | การจัดเก็บ: ${filterStorage === 'all' ? 'ทุกรูปแบบ' : filterStorage} | ระดับชั้น/ห้อง: ${filterClassroom === 'all' ? 'ทุกระดับชั้น/ห้อง' : filterClassroom}`,
       schoolName: systemConfig?.schoolName || 'ศูนย์การศึกษาพิเศษ ประจำจังหวัดชัยนาท',
       columns: [
-        { header: 'ลำดับ', key: 'index', width: '45px', align: 'center' },
-        { header: 'รหัส', key: 'studentCode', width: '70px', align: 'center' },
-        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '160px', align: 'left' },
-        { header: 'ห้องเรียน', key: 'classroom', width: '60px', align: 'center' },
-        { header: 'รายการยาประจำตัว', key: 'medicineName', width: '160px', align: 'left' },
-        { header: 'ขนาด / วิธีรับประทาน', key: 'dosage', width: '140px', align: 'left' },
-        { header: 'เวลาที่รับประทาน', key: 'timing', width: '130px', align: 'left' },
-        { header: 'การจัดเก็บ', key: 'storage', width: '95px', align: 'center' },
-        { header: 'ผู้ปกครอง & เบอร์โทร', key: 'guardian', width: '135px', align: 'left' }
+        { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
+        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
+        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '90px', align: 'center' },
+        { header: 'รายการยาประจำตัว / ขนาดยา / เวลาที่รับประทาน', key: 'medicationDetails', width: '420px', align: 'left' },
+        { header: 'การจัดเก็บ', key: 'storage', width: '100px', align: 'center' }
       ],
-      rows: filteredStudents.map((s, idx) => ({
-        index: idx + 1,
+      rows: filteredStudents.map((s) => ({
         studentCode: s.studentCode,
         fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
         classroom: s.classroom,
-        medicineName: (s.dailyMedications || []).map(m => `• ${m.medicineName}`).join('\n') || '-',
-        dosage: (s.dailyMedications || []).map(m => `• ${m.dosage}`).join('\n') || '-',
-        timing: (s.dailyMedications || []).map(m => `• ${m.timing}`).join('\n') || '-',
-        storage: (s.dailyMedications || []).map(m => m.storage).join(', ') || '-',
-        guardian: `${s.guardianName || '-'}\nโทร: ${s.guardianPhone || s.emergencyPhone || '-'}`
+        medicationDetails: (s.dailyMedications || []).length > 0
+          ? (s.dailyMedications || []).map((m, idx) => 
+              `${idx + 1}. 💊 ${m.medicineName}   |   ขนาดยา: ${m.dosage}   |   เวลา: ${m.timing}${m.notes ? `   |   (${m.notes})` : ''}`
+            ).join('\n')
+          : '-',
+        storage: (s.dailyMedications || []).map(m => m.storage).join(', ') || '-'
       })),
       summaryStats: [
         { label: 'จำนวนนักเรียนที่รับประทานยา', value: `${filteredStudents.length} คน` },
@@ -483,13 +480,13 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
             </select>
           </div>
 
-          {/* Classroom */}
+          {/* Classroom / Grade */}
           <select
             value={filterClassroom}
             onChange={(e) => setFilterClassroom(e.target.value)}
-            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-blue-500"
+            className="text-xs rounded-xl border border-slate-300 py-2 px-2.5 bg-white text-slate-700 focus:ring-blue-500 font-semibold"
           >
-            <option value="all">ทุกห้องเรียน</option>
+            <option value="all">ทุกระดับชั้น/ห้อง</option>
             {(systemConfig.classrooms || []).map(c => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
@@ -546,10 +543,9 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
                 <tr>
                   <th className="py-3.5 px-3 text-center w-12">#</th>
                   <th className="py-3.5 px-3 w-48">ข้อมูลนักเรียน</th>
-                  <th className="py-3.5 px-3 text-center w-24">ห้องเรียน</th>
-                  <th className="py-3.5 px-4 min-w-[240px]">รายการยาและขนาดยา</th>
-                  <th className="py-3.5 px-3 w-40">เวลาที่รับประทาน</th>
-                  <th className="py-3.5 px-3 text-center w-32">การจัดเก็บ</th>
+                  <th className="py-3.5 px-3 text-center w-28">ระดับชั้น/ห้อง</th>
+                  <th className="py-3.5 px-4 min-w-[340px]">รายการยาประจำตัว / ขนาดยา / เวลาที่รับประทาน</th>
+                  <th className="py-3.5 px-3 text-center w-28">การจัดเก็บ</th>
                   <th className="py-3.5 px-3 w-44">ผู้ปกครอง / เบอร์โทร</th>
                   <th className="py-3.5 px-3 text-center w-36">จัดการ</th>
                 </tr>
@@ -565,9 +561,10 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center space-x-2.5">
-                          <img
-                            src={student.photoUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200'}
-                            alt={student.firstName}
+                          <StudentAvatar
+                            src={student.photoUrl}
+                            gender={student.gender}
+                            name={student.firstName}
                             className="w-9 h-9 rounded-xl object-cover border border-slate-200 flex-shrink-0"
                           />
                           <div className="min-w-0">
@@ -587,30 +584,26 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
                       <td className="py-3 px-4">
                         <div className="space-y-1.5">
                           {meds.map(med => (
-                            <div key={med.id} className="p-1.5 rounded-lg bg-blue-50/70 border border-blue-200/60 text-[11px]">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="font-bold text-blue-900 truncate">
-                                  💊 {med.medicineName}
-                                </span>
-                                <span className="text-slate-600 font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-blue-100 shrink-0">
-                                  {med.dosage}
+                            <div key={med.id} className="p-2 rounded-xl bg-blue-50/80 border border-blue-200/70 text-xs">
+                              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-bold text-blue-950">
+                                    💊 {med.medicineName}
+                                  </span>
+                                  <span className="text-slate-700 font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                                    ขนาดยา: {med.dosage}
+                                  </span>
+                                </div>
+                                <span className="inline-flex items-center space-x-1 text-[11px] font-semibold text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                                  <span>⏰</span>
+                                  <span>เวลา: {med.timing}</span>
                                 </span>
                               </div>
                               {med.notes && (
-                                <div className="text-amber-800 text-[10px] mt-0.5 font-medium">
-                                  ⚠️ {med.notes}
+                                <div className="text-amber-800 text-[10px] mt-1 font-medium pl-6">
+                                  ⚠️ หมายเหตุ: {med.notes}
                                 </div>
                               )}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="space-y-1">
-                          {meds.map(med => (
-                            <div key={med.id} className="text-[11px] font-medium text-slate-700 flex items-center space-x-1">
-                              <span>⏰</span>
-                              <span>{med.timing}</span>
                             </div>
                           ))}
                         </div>
@@ -690,9 +683,10 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
                 <div>
                   {/* Card Header */}
                   <div className="p-4 border-b border-slate-100 flex items-start space-x-3">
-                    <img
-                      src={student.photoUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200'}
-                      alt={student.firstName}
+                    <StudentAvatar
+                      src={student.photoUrl}
+                      gender={student.gender}
+                      name={student.firstName}
                       className="w-13 h-13 rounded-2xl object-cover border-2 border-slate-100 shadow-2xs flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
