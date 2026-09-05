@@ -68,22 +68,52 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  const errorMsg = error instanceof Error ? error.message : String(error);
+  const errorCode = (error as any)?.code;
+  const isPermissionError = errorCode === 'permission-denied' || errorMsg.toLowerCase().includes('permission');
+
+  if (isPermissionError) {
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  } else {
+    // For offline/network/transient issues, log warning so offline mode and listeners remain resilient
+    console.warn('Firestore Operation Notice:', errorMsg, 'path:', path);
+  }
 }
 
-// Connection test as mandated by SKILL.md
-export async function testConnection(): Promise<boolean> {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Please check your Firebase configuration or internet connection.");
+// Connection test as mandated by SKILL.md with graceful offline and retry resilience
+export async function testConnection(retries = 2, delayMs = 1500): Promise<boolean> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      await getDocFromServer(doc(db, 'test', 'connection'));
+      return true;
+    } catch (error: any) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorCode = error?.code;
+      const isOfflineOrUnavailable = 
+        errorCode === 'unavailable' ||
+        errorMsg.includes('the client is offline') ||
+        errorMsg.includes('Could not reach Cloud Firestore') ||
+        errorMsg.includes('unavailable');
+
+      if (isOfflineOrUnavailable) {
+        if (attempt < retries) {
+          // Wait briefly before retrying in case WebChannel is connecting
+          await new Promise(r => setTimeout(r, delayMs));
+          continue;
+        }
+        console.warn("Firestore operates in offline/local-cache mode until backend connection is established.");
+        return false;
+      }
+
+      if (error instanceof Error && error.message.includes('the client is offline')) {
+        console.error("Please check your Firebase configuration.");
+      }
+      return true;
     }
-    // We consider connection tested even if doc does not exist
-    return true;
   }
+  return false;
 }
 
 // Helper: Compress image to fit within Firestore 1MB document limit safely

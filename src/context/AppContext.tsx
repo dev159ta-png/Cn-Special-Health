@@ -401,10 +401,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Initial Firebase connection verification
   useEffect(() => {
-    testConnection().then(() => {
-      setIsFirebaseConnected(true);
+    testConnection().then((connected) => {
+      setIsFirebaseConnected(connected);
     }).catch(err => {
-      console.warn('Firebase initial test error:', err);
+      console.warn('Firebase initial test notice:', err);
     });
   }, []);
 

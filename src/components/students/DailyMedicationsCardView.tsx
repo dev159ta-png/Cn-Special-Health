@@ -265,9 +265,16 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
         fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
         classroom: s.classroom,
         medicationDetails: (s.dailyMedications || []).length > 0
-          ? (s.dailyMedications || []).map((m, idx) => 
-              `${idx + 1}. 💊 ${m.medicineName}   |   ขนาดยา: ${m.dosage}   |   เวลา: ${m.timing}${m.notes ? `   |   (${m.notes})` : ''}`
-            ).join('\n')
+          ? (s.dailyMedications || []).map((m, idx) => {
+              const lines = [
+                `${idx + 1}. 💊 ${m.medicineName}`,
+                `   • ขนาดยา: ${m.dosage}  |  เวลา: ${m.timing}`
+              ];
+              if (m.notes) {
+                lines.push(`   • หมายเหตุ: ${m.notes}`);
+              }
+              return lines.join('\n');
+            }).join('\n\n')
           : '-',
         storage: (s.dailyMedications || []).map(m => m.storage).join(', ') || '-'
       })),

@@ -138,6 +138,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       border-collapse: collapse;
       font-size: 11px;
       margin-bottom: 20px;
+      table-layout: fixed;
     }
 
     th {
@@ -153,6 +154,23 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       padding: 6px 8px;
       border: 1px solid #cbd5e1;
       vertical-align: top;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .cell-line {
+      display: block;
+      margin: 0;
+      padding: 1px 0;
+      line-height: 1.5;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
+    .cell-line-empty {
+      height: 6px;
     }
 
     tr:nth-child(even) {
@@ -258,15 +276,17 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
 <body>
   <div class="no-print-bar">
     <div>
-      <strong style="font-size: 14px; color: #0f172a;">ระบบออกรายงาน PDF (${schoolName})</strong>
-      <div style="font-size: 11px; color: #64748b;">กดปุ่ม "ดาวน์โหลดไฟล์ PDF" เพื่อบันทึกไฟล์ .pdf ลงเครื่อง หรือกด "พิมพ์เอกสาร"</div>
+      <strong style="font-size: 14px; color: #0f172a;">ระบบออกรายงานเอกสาร (${schoolName})</strong>
+      <div style="font-size: 11.5px; color: #475569; margin-top: 2px;">
+        💡 <b>คำแนะนำ:</b> แนะนำให้กดปุ่ม <b>"บันทึกเป็น PDF"</b> แล้วเลือก <i>Destination เป็น Save as PDF</i> สระและวรรณยุกต์ภาษาไทยจะคมชัด 100% ตัวหนังสือไม่ทับซ้อน
+      </div>
     </div>
     <div class="btn-actions">
-      <button class="btn-download" id="btn-download-pdf">
-        <span>📥</span> ดาวน์โหลดไฟล์ PDF (.pdf)
-      </button>
       <button class="btn-print" onclick="window.print()">
-        <span>🖨️</span> พิมพ์เอกสาร (Print / Save as PDF)
+        <span>🖨️</span> บันทึกเป็น PDF / พิมพ์ (แนะนำ คมชัด 100%)
+      </button>
+      <button class="btn-download" id="btn-download-pdf">
+        <span>📥</span> ดาวน์โหลดทันที (.pdf)
       </button>
     </div>
   </div>
@@ -312,12 +332,22 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
             ${showIndex ? `<td style="text-align: center; font-weight: 600; color: #475569;">${idx + 1}</td>` : ''}
             ${columns.map(c => {
               const rawVal = row[c.key];
-              const displayVal = rawVal !== undefined && rawVal !== null && rawVal !== '' 
-                ? (typeof rawVal === 'string' ? rawVal.replace(/\n/g, '<br/>') : rawVal) 
-                : '-';
+              let cellContent = '-';
+              if (rawVal !== undefined && rawVal !== null && rawVal !== '') {
+                if (typeof rawVal === 'string') {
+                  const lines = rawVal.split('\n');
+                  cellContent = lines.map(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return '<div class="cell-line-empty"></div>';
+                    return `<div class="cell-line">${line}</div>`;
+                  }).join('');
+                } else {
+                  cellContent = String(rawVal);
+                }
+              }
               return `
                 <td style="text-align: ${c.align || 'left'};">
-                  ${displayVal}
+                  ${cellContent}
                 </td>
               `;
             }).join('')}
@@ -337,33 +367,48 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
   </div>
 
   <script>
-    // Direct PDF download via html2pdf
-    document.getElementById('btn-download-pdf').addEventListener('click', function() {
-      const element = document.getElementById('report-content');
-      const filename = '${title.replace(/[\\/\\\\:*?"<>|]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf';
-      const opt = {
-        margin:       [10, 8, 12, 8],
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
-      };
-      
-      this.innerHTML = '<span>⏳</span> กำลังจัดทำไฟล์ PDF...';
-      this.disabled = true;
+    // Direct PDF download via html2pdf with font loading guarantee
+    document.getElementById('btn-download-pdf').addEventListener('click', async function() {
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span>⏳</span> กำลังเตรียมแบบอักษรและจัดทำ PDF...';
+      btn.disabled = true;
 
-      html2pdf().set(opt).from(element).save().then(() => {
-        this.innerHTML = '<span>✅</span> ดาวน์โหลดสำเร็จ!';
+      try {
+        if (document.fonts) {
+          await document.fonts.ready;
+        }
+        await new Promise(r => setTimeout(r, 150));
+
+        const element = document.getElementById('report-content');
+        const filename = '${title.replace(/[\\/\\\\:*?"<>|]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf';
+        const opt = {
+          margin:       [8, 8, 10, 8],
+          filename:     filename,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false,
+            letterRendering: false,
+            scrollY: 0,
+            scrollX: 0
+          },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+
+        await html2pdf().set(opt).from(element).save();
+        btn.innerHTML = '<span>✅</span> ดาวน์โหลดสำเร็จ!';
         setTimeout(() => {
-          this.innerHTML = '<span>📥</span> ดาวน์โหลดไฟล์ PDF (.pdf)';
-          this.disabled = false;
+          btn.innerHTML = originalText;
+          btn.disabled = false;
         }, 2500);
-      }).catch(err => {
+      } catch (err) {
         console.error('PDF download error:', err);
         window.print();
-        this.innerHTML = '<span>📥</span> ดาวน์โหลดไฟล์ PDF (.pdf)';
-        this.disabled = false;
-      });
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
     });
   </script>
 </body>

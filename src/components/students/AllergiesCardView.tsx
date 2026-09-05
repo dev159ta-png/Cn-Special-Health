@@ -303,10 +303,10 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
         classroom: s.classroom,
         bloodType: s.bloodType,
         drugAllergies: (s.drugAllergies || []).length > 0 
-          ? (s.drugAllergies || []).map(d => `• ${d.drugName} [${d.severity}] : ${d.reaction || '-'}`).join('\n') 
+          ? (s.drugAllergies || []).map(d => `• ${d.drugName} [${d.severity}]\n  อาการ: ${d.reaction || '-'}`).join('\n\n') 
           : '-',
         foodAllergies: (s.foodAllergies || []).length > 0
-          ? (s.foodAllergies || []).map(f => `• ${f.foodName} [${f.severity}] : ${f.reaction || '-'}`).join('\n')
+          ? (s.foodAllergies || []).map(f => `• ${f.foodName} [${f.severity}]\n  อาการ: ${f.reaction || '-'}`).join('\n\n')
           : '-'
       })),
       summaryStats: [
