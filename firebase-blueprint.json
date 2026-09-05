@@ -1,0 +1,253 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Student health and disability record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentCode": { "type": "string", "maxLength": 64 },
+        "nationalId": { "type": "string", "maxLength": 20 },
+        "prefix": { "type": "string", "maxLength": 20 },
+        "firstName": { "type": "string", "maxLength": 100 },
+        "lastName": { "type": "string", "maxLength": 100 },
+        "nickname": { "type": "string", "maxLength": 50 },
+        "photoUrl": { "type": "string", "maxLength": 500000 },
+        "birthDate": { "type": "string", "maxLength": 30 },
+        "age": { "type": "number" },
+        "gender": { "type": "string", "maxLength": 20 },
+        "bloodType": { "type": "string", "maxLength": 10 },
+        "grade": { "type": "string", "maxLength": 50 },
+        "classroom": { "type": "string", "maxLength": 50 },
+        "homeroomTeacher": { "type": "string", "maxLength": 100 },
+        "guardianName": { "type": "string", "maxLength": 100 },
+        "guardianRelationship": { "type": "string", "maxLength": 50 },
+        "guardianPhone": { "type": "string", "maxLength": 30 },
+        "emergencyPhone": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 255 },
+        "specialPrecautions": { "type": "string", "maxLength": 500 },
+        "disabilities": { "type": "array" },
+        "chronicDiseases": { "type": "array" },
+        "drugAllergies": { "type": "array" },
+        "foodAllergies": { "type": "array" },
+        "dailyMedications": { "type": "array" },
+        "medicalDevices": { "type": "array" },
+        "vaccines": { "type": "array" },
+        "nutritionHistory": { "type": "array" },
+        "documents": { "type": "array" },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "studentCode", "firstName", "lastName", "classroom"]
+    },
+    "Medicine": {
+      "title": "Medicine",
+      "description": "Medicine stock and inventory detail",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 50 },
+        "tradeName": { "type": "string", "maxLength": 100 },
+        "genericName": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 50 },
+        "dosageForm": { "type": "string", "maxLength": 50 },
+        "strength": { "type": "string", "maxLength": 50 },
+        "unit": { "type": "string", "maxLength": 30 },
+        "currentStock": { "type": "number" },
+        "minimumStock": { "type": "number" },
+        "lotNumber": { "type": "string", "maxLength": 50 },
+        "expiryDate": { "type": "string", "maxLength": 30 },
+        "location": { "type": "string", "maxLength": 100 },
+        "instructions": { "type": "string", "maxLength": 500 },
+        "contraindications": { "type": "string", "maxLength": 500 },
+        "sideEffects": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["id", "tradeName", "currentStock", "unit", "lotNumber", "expiryDate"]
+    },
+    "InfirmaryVisit": {
+      "title": "InfirmaryVisit",
+      "description": "Student infirmary room visit record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "visitNumber": { "type": "string", "maxLength": 50 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "studentCode": { "type": "string", "maxLength": 50 },
+        "classroom": { "type": "string", "maxLength": 50 },
+        "visitDate": { "type": "string", "maxLength": 30 },
+        "visitTime": { "type": "string", "maxLength": 30 },
+        "symptoms": { "type": "array" },
+        "symptomDetails": { "type": "string", "maxLength": 1000 },
+        "treatments": { "type": "array" },
+        "treatmentDetails": { "type": "string", "maxLength": 1000 },
+        "vitalSigns": { "type": "object" },
+        "dispensedMedicines": { "type": "array" },
+        "outcome": { "type": "string", "maxLength": 50 },
+        "bedNumber": { "type": "string", "maxLength": 20 },
+        "restStartTime": { "type": "string", "maxLength": 30 },
+        "restEndTime": { "type": "string", "maxLength": 30 },
+        "attendingStaff": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "isReferral": { "type": "boolean" },
+        "referralHospital": { "type": "string", "maxLength": 100 },
+        "parentNotified": { "type": "boolean" },
+        "parentNotificationTime": { "type": "string", "maxLength": 30 },
+        "parentNotificationMethod": { "type": "string", "maxLength": 50 },
+        "parentResponse": { "type": "string", "maxLength": 255 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "studentId", "visitDate", "visitTime", "attendingStaff"]
+    },
+    "MedicalAppointment": {
+      "title": "MedicalAppointment",
+      "description": "Hospital or medical checkup appointment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "studentCode": { "type": "string", "maxLength": 50 },
+        "classroom": { "type": "string", "maxLength": 50 },
+        "appointmentDate": { "type": "string", "maxLength": 30 },
+        "appointmentTime": { "type": "string", "maxLength": 30 },
+        "hospital": { "type": "string", "maxLength": 100 },
+        "department": { "type": "string", "maxLength": 100 },
+        "doctorName": { "type": "string", "maxLength": 100 },
+        "purpose": { "type": "string", "maxLength": 255 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "maxLength": 50 },
+        "accompanyingPerson": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "studentId", "appointmentDate", "hospital", "purpose"]
+    },
+    "IllnessEpisode": {
+      "title": "IllnessEpisode",
+      "description": "Active sickness tracking and recovery status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "studentCode": { "type": "string", "maxLength": 50 },
+        "classroom": { "type": "string", "maxLength": 50 },
+        "startDate": { "type": "string", "maxLength": 30 },
+        "symptoms": { "type": "array" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "maxLength": 50 },
+        "recoveredDate": { "type": "string", "maxLength": 30 },
+        "recoveryNote": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "studentId", "startDate", "status"]
+    },
+    "StockLog": {
+      "title": "StockLog",
+      "description": "Medicine stock intake and dispense movement log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 50 },
+        "medicineId": { "type": "string", "maxLength": 128 },
+        "medicineName": { "type": "string", "maxLength": 100 },
+        "movementType": { "type": "string", "maxLength": 50 },
+        "quantity": { "type": "number" },
+        "previousStock": { "type": "number" },
+        "newStock": { "type": "number" },
+        "lotNumber": { "type": "string", "maxLength": 50 },
+        "referenceNote": { "type": "string", "maxLength": 255 },
+        "performedBy": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "medicineId", "movementType", "quantity", "performedBy"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Security audit trail for changes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "action": { "type": "string", "maxLength": 50 },
+        "module": { "type": "string", "maxLength": 50 },
+        "details": { "type": "string", "maxLength": 500 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "userRole": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "timestamp", "action", "module", "userName"]
+    },
+    "UploadedDocument": {
+      "title": "UploadedDocument",
+      "description": "Uploaded image or PDF document file",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "fileName": { "type": "string", "maxLength": 255 },
+        "fileType": { "type": "string", "maxLength": 50 },
+        "fileSize": { "type": "string", "maxLength": 30 },
+        "category": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 255 },
+        "fileData": { "type": "string", "maxLength": 800000 },
+        "uploadedAt": { "type": "string", "maxLength": 50 },
+        "uploadedBy": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["id", "fileName", "fileType", "fileData", "uploadedAt"]
+    },
+    "SystemConfigDoc": {
+      "title": "SystemConfigDoc",
+      "description": "School infirmary configuration settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "schoolName": { "type": "string", "maxLength": 255 },
+        "schoolBranch": { "type": "string", "maxLength": 255 },
+        "academicYear": { "type": "string", "maxLength": 20 },
+        "term": { "type": "string", "maxLength": 10 },
+        "headNurseName": { "type": "string", "maxLength": 100 },
+        "classrooms": { "type": "array" }
+      },
+      "required": ["id", "schoolName"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Student health profiles and personal care needs"
+    },
+    "/medicines/{medicineId}": {
+      "schema": "Medicine",
+      "description": "Infirmary medicine formulary and inventory"
+    },
+    "/visits/{visitId}": {
+      "schema": "InfirmaryVisit",
+      "description": "Infirmary room visits and treatments"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "MedicalAppointment",
+      "description": "Hospital medical checkup appointments"
+    },
+    "/illnessEpisodes/{episodeId}": {
+      "schema": "IllnessEpisode",
+      "description": "Illness tracking and recovery records"
+    },
+    "/stockLogs/{logId}": {
+      "schema": "StockLog",
+      "description": "Medicine inventory movement history"
+    },
+    "/auditLogs/{auditId}": {
+      "schema": "AuditLog",
+      "description": "System operational audit trail"
+    },
+    "/uploadedDocuments/{docId}": {
+      "schema": "UploadedDocument",
+      "description": "Uploaded PDF documents, medical certificates, and images"
+    },
+    "/systemConfig/{configId}": {
+      "schema": "SystemConfigDoc",
+      "description": "Infirmary school configuration"
+    }
+  }
+}

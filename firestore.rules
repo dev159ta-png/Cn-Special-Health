@@ -1,0 +1,141 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny all unhandled paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'dev159ta@gmail.com' ||
+        request.auth.token.email == 'van0979495178@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidStudent(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.studentCode is string && data.studentCode.size() <= 64 &&
+             data.firstName is string && data.firstName.size() <= 100 &&
+             data.lastName is string && data.lastName.size() <= 100 &&
+             data.classroom is string && data.classroom.size() <= 50;
+    }
+
+    function isValidMedicine(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.tradeName is string && data.tradeName.size() <= 100 &&
+             data.unit is string && data.unit.size() <= 30;
+    }
+
+    function isValidVisit(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.visitDate is string && data.visitDate.size() <= 30;
+    }
+
+    function isValidAppointment(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.appointmentDate is string && data.appointmentDate.size() <= 30;
+    }
+
+    function isValidIllnessEpisode(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.startDate is string && data.startDate.size() <= 30;
+    }
+
+    function isValidStockLog(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.medicineId is string && data.medicineId.size() <= 128 &&
+             data.movementType is string && data.movementType.size() <= 50;
+    }
+
+    function isValidAuditLog(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.action is string && data.action.size() <= 50 &&
+             data.entityType is string && data.entityType.size() <= 50;
+    }
+
+    function isValidDocument(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.fileName is string && data.fileName.size() <= 255 &&
+             data.fileType is string && data.fileType.size() <= 50 &&
+             data.fileData is string && data.fileData.size() <= 800000;
+    }
+
+    function isValidConfig(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.schoolName is string && data.schoolName.size() <= 255;
+    }
+
+    // Connection check document path
+    match /test/{testId} {
+      allow read: if true;
+    }
+
+    match /students/{studentId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(studentId) && isValidStudent(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /medicines/{medicineId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(medicineId) && isValidMedicine(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /visits/{visitId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(visitId) && isValidVisit(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(appointmentId) && isValidAppointment(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /illnessEpisodes/{episodeId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(episodeId) && isValidIllnessEpisode(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /stockLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(logId) && isValidStockLog(request.resource.data);
+      allow update, delete: if false; // Immutable audit log
+    }
+
+    match /auditLogs/{auditId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(auditId) && isValidAuditLog(request.resource.data);
+      allow update, delete: if false; // Immutable audit log
+    }
+
+    match /uploadedDocuments/{docId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(docId) && isValidDocument(request.resource.data);
+      allow delete: if isSignedIn();
+    }
+
+    match /systemConfig/{configId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(configId) && isValidConfig(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
