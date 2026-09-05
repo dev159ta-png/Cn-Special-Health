@@ -24,10 +24,11 @@ import {
   AlertTriangle,
   LayoutGrid,
   Table,
-  FileDown
+  FileDown,
+  FileText
 } from 'lucide-react';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
-import { exportTableAsPDF } from '../../utils/tablePdfExport';
+import { exportTableAsPDF, exportDailyMedicationsPDF } from '../../utils/tablePdfExport';
 import { StudentAvatar } from '../common/StudentAvatar';
 
 interface DailyMedicationsCardViewProps {
@@ -47,8 +48,18 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
   const [filterTiming, setFilterTiming] = useState<string>('all');
   const [filterStorage, setFilterStorage] = useState<string>('all');
   const [filterClassroom, setFilterClassroom] = useState<string>('all');
+  const [filterDormitory, setFilterDormitory] = useState<'all' | 'male' | 'female'>('all');
   const [selectedDuplicateFilter, setSelectedDuplicateFilter] = useState<string>('all'); // 'all', 'only-duplicates', or medName
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
+  const [tableLayoutMode, setTableLayoutMode] = useState<'neat_lines' | 'detailed'>('neat_lines');
+
+  // PDF Export Modal States
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfTitle, setPdfTitle] = useState('รายชื่อยาประจำตัวนักเรียนหอชาย');
+  const [pdfDormitory, setPdfDormitory] = useState<'all' | 'male' | 'female'>('all');
+  const [pdfEmptyRows, setPdfEmptyRows] = useState<number>(4);
+  const [pdfShowSignature, setPdfShowSignature] = useState<boolean>(true);
+  const [pdfSignatureTitle, setPdfSignatureTitle] = useState<string>('ผู้ดูแลหอนอน / เจ้าหน้าที่ห้องพยาบาล');
 
   // Admin CRUD Modal States
   const [modalOpen, setModalOpen] = useState(false);
@@ -109,6 +120,10 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
     return studentsWithDailyMeds.filter(s => {
       if (filterClassroom !== 'all' && s.classroom !== filterClassroom && s.grade !== filterClassroom) return false;
 
+      // Dormitory / Gender Filter
+      if (filterDormitory === 'male' && s.gender !== 'ชาย') return false;
+      if (filterDormitory === 'female' && s.gender !== 'หญิง') return false;
+
       const meds = s.dailyMedications || [];
 
       // Filter by timing
@@ -155,7 +170,7 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
 
       return true;
     });
-  }, [studentsWithDailyMeds, filterClassroom, filterTiming, filterStorage, selectedDuplicateFilter, searchQuery, duplicateOnlyItems]);
+  }, [studentsWithDailyMeds, filterClassroom, filterDormitory, filterTiming, filterStorage, selectedDuplicateFilter, searchQuery, duplicateOnlyItems]);
 
   // Statistics
   const totalStudents = studentsWithDailyMeds.length;
