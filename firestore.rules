@@ -70,8 +70,8 @@ service cloud.firestore {
     function isValidDocument(data) {
       return data.id is string && data.id.size() <= 128 &&
              data.fileName is string && data.fileName.size() <= 255 &&
-             data.fileType is string && data.fileType.size() <= 50 &&
-             data.fileData is string && data.fileData.size() <= 800000;
+             data.fileType is string && data.fileType.size() <= 100 &&
+             data.fileData is string && data.fileData.size() <= 1040000;
     }
 
     function isValidConfig(data) {

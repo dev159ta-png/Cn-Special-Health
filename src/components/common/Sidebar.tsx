@@ -52,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { 
     currentUser, 
     students,
+    uploadedDocuments = [],
     lowStockMedicinesCount, 
     expiringMedicinesCount, 
     expiredMedicinesCount,
@@ -319,6 +320,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }`}
                 >
                   • ประวัติการรักษาของนักเรียน
+                </button>
+
+                {/* เมนูคลังเอกสาร & รูปภาพ Cloud Real-time */}
+                <button
+                  onClick={() => handleNav('students', 'documents')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
+                    (currentTab === 'students' && currentSubTab === 'documents') || currentTab === 'documents'
+                      ? 'bg-teal-50 text-teal-800 font-bold border-l-2 border-teal-600'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="flex items-center space-x-1.5 truncate">
+                    <FileText className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" />
+                    <span>คลังเอกสาร & รูปภาพ (Cloud)</span>
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-teal-100 text-teal-800 font-bold">
+                    {uploadedDocuments.length}
+                  </span>
                 </button>
 
                 <button

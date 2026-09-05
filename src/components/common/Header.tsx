@@ -280,29 +280,33 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Firebase Cloud Real-time Status */}
-          <div className="hidden sm:flex items-center">
+          <div className="flex items-center">
             {firebaseUser ? (
-              <div 
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold shadow-2xs"
-                title={`เชื่อมต่อ Firebase สำเร็จ: ${firebaseUser.email} (Real-time Synced)`}
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={isSyncing || isManualSyncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title={`เชื่อมต่อ Firebase สำเร็จ: ${firebaseUser.email} (คลิกเพื่อซิงค์ข้อมูลล่าสุด)`}
               >
                 {isSyncing || isManualSyncing ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
                 ) : (
                   <CloudCheck className="w-4 h-4 text-emerald-600" />
                 )}
-                <span className="hidden lg:inline">Firebase Real-time</span>
+                <span className="hidden sm:inline">Firebase Real-time</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
+              </button>
             ) : (
               <button
                 type="button"
                 onClick={loginWithGoogle}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-xs font-semibold transition-colors cursor-pointer"
-                title="เข้าสู่ระบบด้วย Google เพื่อเปิดการซิงค์ข้อมูล Real-time"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title="คลิกเพื่อเข้าสู่ระบบด้วย Google และเปิดการซิงค์ข้อมูล รูปภาพ และไฟล์ PDF แบบ Real-time"
               >
-                <Cloud className="w-4 h-4 text-teal-600" />
-                <span>ซิงค์ Firebase Real-time</span>
+                <Cloud className="w-3.5 h-3.5 text-teal-100" />
+                <span className="hidden sm:inline">เชื่อมต่อ Firebase Real-time</span>
+                <span className="sm:hidden">Firebase</span>
               </button>
             )}
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { StudentDocument, StudentDocumentType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { formatThaiDatePattern } from '../../utils/dateUtils';
@@ -84,7 +84,15 @@ export const StudentDocumentsSection: React.FC<StudentDocumentsSectionProps> = (
   studentName,
   studentId
 }) => {
-  const { uploadDocument, deleteUploadedDocument, isFirebaseConnected, isSyncing } = useApp();
+  const { 
+    uploadDocument, 
+    deleteUploadedDocument, 
+    uploadedDocuments, 
+    isFirebaseConnected, 
+    isSyncing, 
+    firebaseUser, 
+    loginWithGoogle 
+  } = useApp();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<StudentDocument | null>(null);
 
@@ -103,6 +111,31 @@ export const StudentDocumentsSection: React.FC<StudentDocumentsSectionProps> = (
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Merge realtime cloud uploaded documents for this student with local student.documents
+  const displayedDocuments: StudentDocument[] = useMemo(() => {
+    const cloudDocsForStudent: StudentDocument[] = (uploadedDocuments || [])
+      .filter(d => d.studentId && studentId && d.studentId === studentId)
+      .map(d => {
+        const cat = DOCUMENT_CATEGORIES.find(c => c.label === d.category || c.type === d.category);
+        return {
+          id: d.id,
+          type: (cat?.type || 'other') as StudentDocumentType,
+          title: d.title,
+          fileName: d.fileName,
+          fileType: d.fileType,
+          fileSize: d.fileSize,
+          fileData: d.fileData,
+          uploadDate: d.uploadedAt ? d.uploadedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          notes: d.notes
+        };
+      });
+
+    const cloudIds = new Set(cloudDocsForStudent.map(d => d.id));
+    const nonDupeProps = (documents || []).filter(d => !cloudIds.has(d.id));
+
+    return [...cloudDocsForStudent, ...nonDupeProps];
+  }, [uploadedDocuments, studentId, documents]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -282,10 +315,29 @@ export const StudentDocumentsSection: React.FC<StudentDocumentsSectionProps> = (
         )}
       </div>
 
+      {/* Real-time sync notice if not connected */}
+      {!firebaseUser && (
+        <div className="p-3 bg-teal-50/80 border border-teal-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-teal-900">
+          <div className="flex items-center gap-2">
+            <Cloud className="w-4 h-4 text-teal-600 shrink-0" />
+            <span>
+              <strong>ซิงค์ Firebase Real-time:</strong> เชื่อมต่อบัญชี Google เพื่อเปิดใช้งานการอัปโหลดรูปภาพและ PDF แบบซิงค์ทันทีทุกเครื่อง
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={loginWithGoogle}
+            className="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs shrink-0 cursor-pointer"
+          >
+            เชื่อมต่อทันที
+          </button>
+        </div>
+      )}
+
       {/* Category Overview Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         {DOCUMENT_CATEGORIES.map(cat => {
-          const count = documents.filter(d => d.type === cat.type).length;
+          const count = displayedDocuments.filter(d => d.type === cat.type).length;
           const Icon = cat.icon;
           return (
             <div
@@ -313,7 +365,7 @@ export const StudentDocumentsSection: React.FC<StudentDocumentsSectionProps> = (
       </div>
 
       {/* Document List / Grid */}
-      {documents.length === 0 ? (
+      {displayedDocuments.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
           <FileText className="w-12 h-12 text-slate-300 mx-auto mb-2" />
           <p className="text-sm font-semibold text-slate-600">ยังไม่มีการแนบเอกสารสำหรับนักเรียนคนนี้</p>
@@ -333,7 +385,7 @@ export const StudentDocumentsSection: React.FC<StudentDocumentsSectionProps> = (
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {documents.map((doc) => {
+          {displayedDocuments.map((doc) => {
             const isPdf = doc.fileType.includes('pdf') || doc.fileName.toLowerCase().endsWith('.pdf');
             const isImage = doc.fileType.includes('image') || doc.fileData.startsWith('data:image/');
             const category = DOCUMENT_CATEGORIES.find(c => c.type === doc.type);

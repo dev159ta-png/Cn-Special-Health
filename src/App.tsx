@@ -23,6 +23,7 @@ import { ReportsView } from './components/reports/ReportsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { EmergencyView } from './components/emergency/EmergencyView';
 import { DoctorAppointmentCalendarView } from './components/appointments/DoctorAppointmentCalendarView';
+import { CloudDocumentsView } from './components/documents/CloudDocumentsView';
 import { Student, InfirmaryVisit } from './types';
 
 interface NavigationState {
@@ -270,7 +271,21 @@ const MainAppContent: React.FC = () => {
                   onShowQR={(student) => setQrStudent(student)}
                 />
               )}
+
+              {/* 2.9 คลังเอกสาร & รูปภาพ Cloud Real-time */}
+              {nav.subTab === 'documents' && (
+                <CloudDocumentsView
+                  onSelectStudent={(student) => handleSelectStudent(student.id, 'documents')}
+                />
+              )}
             </>
+          )}
+
+          {/* Direct tab for documents */}
+          {nav.tab === 'documents' && (
+            <CloudDocumentsView
+              onSelectStudent={(student) => handleSelectStudent(student.id, 'documents')}
+            />
           )}
 
           {/* 3. VIEW: Emergency Quick Profile View */}
