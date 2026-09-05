@@ -40,7 +40,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     return visits.filter(v => {
       if (startDate && v.visitDate < startDate) return false;
       if (endDate && v.visitDate > endDate) return false;
-      if (classroom !== 'all' && v.classroom !== classroom) return false;
+      if (classroom !== 'all') {
+        const student = students.find(s => s.id === v.studentId);
+        if (v.classroom !== classroom && (student && student.grade !== classroom && student.classroom !== classroom)) return false;
+      }
       if (disabilityType !== 'all') {
         const student = students.find(s => s.id === v.studentId);
         if (!student || !(student.disabilities || []).some(d => d.typeId === disabilityType)) return false;
@@ -61,7 +64,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   // Filtered Students
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
-      if (classroom !== 'all' && s.classroom !== classroom) return false;
+      if (classroom !== 'all' && s.classroom !== classroom && s.grade !== classroom) return false;
       if (disabilityType !== 'all' && !(s.disabilities || []).some(d => d.typeId === disabilityType)) return false;
       return true;
     });
@@ -212,13 +215,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           </div>
 
           <div>
-            <label className="block text-slate-600 font-medium mb-1">ห้องเรียน</label>
+            <label className="block text-slate-600 font-medium mb-1">ระดับชั้น/ห้อง</label>
             <select
               value={classroom}
               onChange={e => setClassroom(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 p-2 bg-white"
+              className="w-full rounded-xl border border-slate-300 p-2 bg-white font-semibold"
             >
-              <option value="all">ทุกห้องเรียน</option>
+              <option value="all">ทุกระดับชั้น/ห้อง</option>
               {(systemConfig.classrooms || []).map(c => (
                 <option key={c.name} value={c.name}>{c.name}</option>
               ))}

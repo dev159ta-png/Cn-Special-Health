@@ -247,8 +247,11 @@ export const INITIAL_STOCK_LOGS: StockMovementLog[] = [];
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [];
 
 export const INITIAL_SYSTEM_CONFIG: SystemConfig = {
-  schoolName: 'สถานศึกษาศึกษาพิเศษชัยนาท (สำนักบริหารงานการศึกษาพิเศษ)',
-  infirmaryRoomName: 'งานห้องพยาบาลและบริการสุขภาพ สถานศึกษาศึกษาพิเศษชัยนาท',
+  schoolName: 'โรงเรียนศึกษาพิเศษชัยนาท',
+  schoolLogo: '',
+  schoolAffiliation: 'สำนักบริหารงานการศึกษาพิเศษ สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน',
+  schoolAddress: 'เลขที่ 248 หมู่ 5 ตำบลชัยนาท อำเภอเมืองชัยนาท จังหวัดชัยนาท 17000',
+  infirmaryRoomName: 'งานห้องพยาบาลและบริการสุขภาพ โรงเรียนศึกษาพิเศษชัยนาท',
   schoolPhone: '056-411-222',
   emergencyPhone: '1669 (สายด่วนกู้ชีพฉุกเฉิน)',
   nearbyHospital: 'โรงพยาบาลชัยนาทนเรนทร',

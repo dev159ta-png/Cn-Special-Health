@@ -315,9 +315,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem(STORAGE_KEYS.SYSTEM_CONFIG);
       if (!saved) return INITIAL_SYSTEM_CONFIG;
       const parsed = JSON.parse(saved);
+      const migratedSchoolName = (!parsed.schoolName || parsed.schoolName.includes('สถานศึกษาศึกษาพิเศษชัยนาท'))
+        ? INITIAL_SYSTEM_CONFIG.schoolName
+        : parsed.schoolName;
       return {
         ...INITIAL_SYSTEM_CONFIG,
         ...parsed,
+        schoolName: migratedSchoolName,
+        schoolAffiliation: parsed.schoolAffiliation || INITIAL_SYSTEM_CONFIG.schoolAffiliation,
+        schoolAddress: parsed.schoolAddress || INITIAL_SYSTEM_CONFIG.schoolAddress,
         disabilityCategories: parsed.disabilityCategories?.length ? parsed.disabilityCategories : INITIAL_SYSTEM_CONFIG.disabilityCategories,
         commonSymptoms: parsed.commonSymptoms?.length ? parsed.commonSymptoms : INITIAL_SYSTEM_CONFIG.commonSymptoms,
         commonTreatments: parsed.commonTreatments?.length ? parsed.commonTreatments : INITIAL_SYSTEM_CONFIG.commonTreatments,

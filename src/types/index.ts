@@ -371,6 +371,9 @@ export interface ClassroomOption {
 
 export interface SystemConfig {
   schoolName: string;
+  schoolLogo?: string;
+  schoolAffiliation?: string;
+  schoolAddress?: string;
   infirmaryRoomName: string;
   schoolPhone: string;
   emergencyPhone: string;

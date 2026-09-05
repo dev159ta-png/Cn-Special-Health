@@ -39,7 +39,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   } = useApp();
 
   // Filters
-  const [filterGrade, setFilterGrade] = useState<string>('all');
   const [filterClassroom, setFilterClassroom] = useState<string>('all');
   const [filterGender, setFilterGender] = useState<string>('all');
   const [filterDisability, setFilterDisability] = useState<string>('all');
@@ -48,13 +47,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   // Filtered Students
   const activeStudents = useMemo(() => {
     return filteredStudentsForUser.filter(s => {
-      if (filterGrade !== 'all' && s.grade !== filterGrade) return false;
-      if (filterClassroom !== 'all' && s.classroom !== filterClassroom) return false;
+      if (filterClassroom !== 'all' && s.classroom !== filterClassroom && s.grade !== filterClassroom) return false;
       if (filterGender !== 'all' && s.gender !== filterGender) return false;
       if (filterDisability !== 'all' && !s.disabilities.some(d => d.typeId === filterDisability)) return false;
       return true;
     });
-  }, [filteredStudentsForUser, filterGrade, filterClassroom, filterGender, filterDisability]);
+  }, [filteredStudentsForUser, filterClassroom, filterGender, filterDisability]);
 
   // Visits today & total
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -221,29 +219,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </div>
 
         {/* Filter Bar */}
-        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
           <div>
-            <label className="block text-slate-500 font-medium mb-1">ระดับชั้น</label>
-            <select
-              value={filterGrade}
-              onChange={e => setFilterGrade(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 py-1.5 px-2 bg-white text-slate-700 focus:ring-2 focus:ring-teal-500"
-            >
-              <option value="all">ทุกระดับชั้น</option>
-              <option value="ป.1">ป.1</option>
-              <option value="ป.2">ป.2</option>
-              <option value="ม.1">ม.1</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-slate-500 font-medium mb-1">ห้องเรียน</label>
+            <label className="block text-slate-500 font-medium mb-1">ระดับชั้น/ห้อง</label>
             <select
               value={filterClassroom}
               onChange={e => setFilterClassroom(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 py-1.5 px-2 bg-white text-slate-700 focus:ring-2 focus:ring-teal-500"
+              className="w-full rounded-lg border border-slate-300 py-1.5 px-2.5 bg-white text-slate-700 focus:ring-2 focus:ring-teal-500 font-semibold"
             >
-              <option value="all">ทุกห้องเรียน</option>
+              <option value="all">ทุกระดับชั้น/ห้อง</option>
               {(systemConfig.classrooms || []).map(c => (
                 <option key={c.name} value={c.name}>{c.name}</option>
               ))}
@@ -255,7 +239,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             <select
               value={filterGender}
               onChange={e => setFilterGender(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 py-1.5 px-2 bg-white text-slate-700 focus:ring-2 focus:ring-teal-500"
+              className="w-full rounded-lg border border-slate-300 py-1.5 px-2.5 bg-white text-slate-700 focus:ring-2 focus:ring-teal-500"
             >
               <option value="all">ทั้งหมด</option>
               <option value="ชาย">ชาย</option>
@@ -268,7 +252,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             <select
               value={filterDisability}
               onChange={e => setFilterDisability(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 py-1.5 px-2 bg-white text-slate-700 focus:ring-2 focus:ring-teal-500"
+              className="w-full rounded-lg border border-slate-300 py-1.5 px-2.5 bg-white text-slate-700 focus:ring-2 focus:ring-teal-500"
             >
               <option value="all">ทุกประเภทความพิการ</option>
               {(systemConfig.disabilityCategories || []).map(d => (
