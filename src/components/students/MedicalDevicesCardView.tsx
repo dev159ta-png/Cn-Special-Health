@@ -292,23 +292,27 @@ export const MedicalDevicesCardView: React.FC<MedicalDevicesCardViewProps> = ({
       schoolLogo: systemConfig?.schoolLogo,
       showIndex: true,
       columns: [
-        { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
-        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
-        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '90px', align: 'center' },
-        { header: 'อุปกรณ์ / ท่อ', key: 'deviceType', width: '190px', align: 'left' },
-        { header: 'รายละเอียด / ขนาด', key: 'details', width: '160px', align: 'left' },
-        { header: 'รอบเปลี่ยนสาย', key: 'replacement', width: '120px', align: 'left' },
-        { header: 'แนวทางการดูแล', key: 'care', width: '210px', align: 'left' }
+        { header: 'รหัส', key: 'studentCode', width: '8%', align: 'center' },
+        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '18%', align: 'left' },
+        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '9%', align: 'center' },
+        { header: 'อุปกรณ์ / ชนิดท่อ', key: 'deviceType', width: '16%', align: 'left' },
+        { header: 'รายละเอียด / ขนาด', key: 'details', width: '15%', align: 'left' },
+        { header: 'รอบเปลี่ยนสาย', key: 'replacement', width: '12%', align: 'left' },
+        { header: 'แนวทางการดูแล', key: 'care', width: '17%', align: 'left' }
       ],
-      rows: filteredStudents.map((s) => ({
-        studentCode: s.studentCode,
-        fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
-        classroom: s.classroom,
-        deviceType: (s.medicalDevices || []).map(d => `• ${d.deviceType}`).join('\n') || '-',
-        details: (s.medicalDevices || []).map(d => `• ${d.details || '-'}`).join('\n') || '-',
-        replacement: (s.medicalDevices || []).map(d => `• ${d.replacementSchedule || '-'}`).join('\n') || '-',
-        care: (s.medicalDevices || []).map(d => `• ${d.careInstructions || '-'}`).join('\n') || '-'
-      })),
+      rows: filteredStudents.map((s) => {
+        const nick = s.nickname ? ` (${s.nickname})` : '';
+        const fullName = `${s.prefix || ''}${s.firstName} ${s.lastName}${nick}`.trim();
+        return {
+          studentCode: s.studentCode,
+          fullName,
+          classroom: s.classroom || s.grade || '-',
+          deviceType: (s.medicalDevices || []).map(d => `• ${d.deviceType}`).join('\n') || '-',
+          details: (s.medicalDevices || []).map(d => `• ${d.details || '-'}`).join('\n') || '-',
+          replacement: (s.medicalDevices || []).map(d => `• ${d.replacementSchedule || '-'}`).join('\n') || '-',
+          care: (s.medicalDevices || []).map(d => `• ${d.careInstructions || '-'}`).join('\n') || '-'
+        };
+      }),
       summaryStats: [
         { label: 'จำนวนนักเรียน', value: `${filteredStudents.length} คน` },
         { label: 'สายให้อาหาร (NG/PEG)', value: `${feedingTubesCount} คน` },

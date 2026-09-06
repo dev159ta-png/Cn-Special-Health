@@ -263,21 +263,25 @@ export const ChronicDiseasesCardView: React.FC<ChronicDiseasesCardViewProps> = (
       schoolLogo: systemConfig?.schoolLogo,
       showIndex: true,
       columns: [
-        { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
-        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
-        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '90px', align: 'center' },
-        { header: 'โรคประจำตัว', key: 'diseases', width: '190px', align: 'left' },
-        { header: 'อาการ / ปัจจัยกระตุ้น', key: 'symptoms', width: '200px', align: 'left' },
-        { header: 'แผนช่วยเหลือฉุกเฉิน', key: 'emergencyCare', width: '220px', align: 'left' }
+        { header: 'รหัส', key: 'studentCode', width: '8%', align: 'center' },
+        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '20%', align: 'left' },
+        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '9%', align: 'center' },
+        { header: 'โรคประจำตัว', key: 'diseases', width: '18%', align: 'left' },
+        { header: 'อาการ / ปัจจัยกระตุ้น', key: 'symptoms', width: '22%', align: 'left' },
+        { header: 'แผนช่วยเหลือฉุกเฉิน / การดูแล', key: 'emergencyCare', width: '18%', align: 'left' }
       ],
-      rows: filteredStudents.map((s) => ({
-        studentCode: s.studentCode,
-        fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
-        classroom: s.classroom,
-        diseases: (s.chronicDiseases || []).map(d => `• ${d.diseaseName}`).join('\n') || '-',
-        symptoms: (s.chronicDiseases || []).map(d => `• ${d.symptoms || '-'}`).join('\n') || '-',
-        emergencyCare: (s.chronicDiseases || []).map(d => `• ${d.emergencyCare || '-'}`).join('\n') || '-'
-      })),
+      rows: filteredStudents.map((s) => {
+        const nick = s.nickname ? ` (${s.nickname})` : '';
+        const fullName = `${s.prefix || ''}${s.firstName} ${s.lastName}${nick}`.trim();
+        return {
+          studentCode: s.studentCode,
+          fullName,
+          classroom: s.classroom || s.grade || '-',
+          diseases: (s.chronicDiseases || []).map(d => `• ${d.diseaseName}`).join('\n') || '-',
+          symptoms: (s.chronicDiseases || []).map(d => `• ${d.symptoms || '-'}`).join('\n') || '-',
+          emergencyCare: (s.chronicDiseases || []).map(d => `• ${d.emergencyCare || '-'}`).join('\n') || '-'
+        };
+      }),
       summaryStats: [
         { label: 'จำนวนนักเรียน', value: `${filteredStudents.length} คน` },
         { label: 'จำนวนโรคประจำตัว', value: `${totalDiseasesCount} รายการ` },

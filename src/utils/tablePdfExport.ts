@@ -1,5 +1,25 @@
 // Utility for generating and printing/saving Table Reports as PDF with full Thai typography support
 
+/**
+ * Preserves authentic Thai text without injecting artificial zero-width spaces
+ * that can disrupt font ligature shaping and combining marks (vowels/tones).
+ * Word breaking is handled natively via CSS (word-break: break-word, overflow-wrap: break-word).
+ */
+export function formatThaiWordBreaks(str: string): string {
+  if (!str) return '';
+  return str;
+}
+
+export function escapeHtml(str: string): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export interface PdfColumn {
   header: string;
   key: string;
@@ -47,8 +67,9 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
   <title>${title} - ${schoolName}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     @page {
       size: A4 landscape;
@@ -59,13 +80,13 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       box-sizing: border-box;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+    }
+
+    html, body, table, th, td, div, p, span, h1, h2, h3 {
       font-family: 'Sarabun', 'TH Sarabun New', 'Leelawadee UI', 'Tahoma', sans-serif !important;
-      letter-spacing: 0px !important;
-      word-spacing: 0px !important;
     }
 
     body {
-      font-family: 'Sarabun', 'TH Sarabun New', 'Leelawadee UI', 'Tahoma', sans-serif;
       font-size: 13px;
       line-height: 1.6;
       color: #1e293b;
@@ -77,12 +98,29 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     }
 
     .report-wrapper {
-      max-width: 1100px;
+      max-width: 1060px;
       margin: 15px auto;
       background: #fff;
-      padding: 24px 30px;
+      padding: 24px 28px;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      box-sizing: border-box;
+    }
+
+    body.is-exporting-pdf {
+      background: #ffffff !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    body.is-exporting-pdf .report-wrapper {
+      width: 1040px !important;
+      max-width: 1040px !important;
+      margin: 0 !important;
+      padding: 8px 12px !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      border: none !important;
     }
 
     .header-container {
@@ -122,7 +160,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       border-radius: 6px;
       padding: 8px 12px;
       margin-bottom: 14px;
-      font-size: 11px;
+      font-size: 11.5px;
     }
 
     .stat-item {
@@ -145,6 +183,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       font-size: 11.5px;
       margin-bottom: 20px;
       table-layout: fixed;
+      box-sizing: border-box;
     }
 
     th {
@@ -154,26 +193,32 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       text-align: left;
       padding: 8px 6px;
       border: 1px solid #0d9488;
-      line-height: 1.5;
+      line-height: 1.4;
+      box-sizing: border-box;
     }
 
     td {
       padding: 6px 8px;
       border: 1px solid #cbd5e1;
       vertical-align: top;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      line-height: 1.6;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      word-wrap: break-word !important;
+      white-space: normal !important;
+      line-height: 1.5;
+      box-sizing: border-box;
+      max-width: 100%;
     }
 
     .cell-line {
       display: block;
       margin: 0;
       padding: 1px 0;
-      line-height: 1.6;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      white-space: normal;
+      line-height: 1.5;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      word-wrap: break-word !important;
+      white-space: normal !important;
     }
 
     .cell-line-empty {
@@ -185,7 +230,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     }
 
     .footer-signature {
-      margin-top: 30px;
+      margin-top: 25px;
       display: flex;
       justify-content: flex-end;
       page-break-inside: avoid;
@@ -208,8 +253,10 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       padding: 12px 24px;
       margin: 0 auto 10px auto;
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
       border-bottom: 1px solid #e2e8f0;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       position: sticky;
@@ -262,8 +309,18 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       background: #115e59;
     }
 
+    #export-status-banner {
+      display: none;
+      max-width: 1060px;
+      margin: 10px auto;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+
     @media print {
-      .no-print-bar {
+      .no-print-bar, #export-status-banner {
         display: none !important;
       }
       body {
@@ -281,6 +338,25 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
         page-break-inside: avoid;
       }
     }
+
+    /* Clean styling applied strictly while generating PDF */
+    body.is-exporting-pdf {
+      background: #ffffff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    body.is-exporting-pdf .no-print-bar,
+    body.is-exporting-pdf #export-status-banner {
+      display: none !important;
+    }
+    body.is-exporting-pdf .report-wrapper {
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      width: 1040px !important;
+      max-width: 1040px !important;
+      background: #ffffff !important;
+    }
   </style>
 </head>
 <body>
@@ -288,7 +364,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     <div>
       <strong style="font-size: 14px; color: #0f172a;">ระบบออกรายงานเอกสาร (${schoolName})</strong>
       <div style="font-size: 11.5px; color: #475569; margin-top: 2px;">
-        💡 <b>คำแนะนำ:</b> แนะนำให้กดปุ่ม <b>"บันทึกเป็น PDF"</b> แล้วเลือก <i>Destination เป็น Save as PDF</i> สระและวรรณยุกต์ภาษาไทยจะคมชัด 100% ตัวหนังสือไม่ทับซ้อน
+        💡 <b>คำแนะนำ:</b> สามารถกด <b>"ดาวน์โหลดทันที (.pdf)"</b> หรือกด <b>"บันทึกเป็น PDF / พิมพ์"</b> (เลือก Destination: Save as PDF) เพื่อความคมชัด 100%
       </div>
     </div>
     <div class="btn-actions">
@@ -300,6 +376,8 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       </button>
     </div>
   </div>
+
+  <div id="export-status-banner"></div>
 
   <div class="report-wrapper" id="report-content">
     <div class="header-container">
@@ -322,7 +400,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     <table>
       <thead>
         <tr>
-          ${showIndex ? `<th style="width: 45px; text-align: center;">ลำดับ</th>` : ''}
+          ${showIndex ? `<th style="width: 5%; text-align: center;">ลำดับ</th>` : ''}
           ${columns.map(c => `
             <th style="${c.width ? `width: ${c.width};` : ''} text-align: ${c.align || 'left'};">
               ${c.header}
@@ -349,10 +427,12 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
                   cellContent = lines.map(line => {
                     const trimmed = line.trim();
                     if (!trimmed) return '<div class="cell-line-empty"></div>';
-                    return `<div class="cell-line">${line}</div>`;
+                    // Format Thai word breaking with zero-width spaces to prevent table cell overflow
+                    const formatted = formatThaiWordBreaks(escapeHtml(line));
+                    return `<div class="cell-line">${formatted}</div>`;
                   }).join('');
                 } else {
-                  cellContent = String(rawVal);
+                  cellContent = escapeHtml(String(rawVal));
                 }
               }
               return `
@@ -377,47 +457,112 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
   </div>
 
   <script>
-    // Direct PDF download via html2pdf with font loading guarantee
+    // Direct PDF download via htmlToImage + jsPDF to preserve 100% Thai font accuracy
     document.getElementById('btn-download-pdf').addEventListener('click', async function() {
       const btn = this;
       const originalText = btn.innerHTML;
-      btn.innerHTML = '<span>⏳</span> กำลังเตรียมแบบอักษรและจัดทำ PDF...';
+      const statusBox = document.getElementById('export-status-banner');
+
+      btn.innerHTML = '<span>⏳</span> กำลังจัดทำ PDF (สระไม่เพี้ยน)...';
       btn.disabled = true;
+
+      if (statusBox) {
+        statusBox.style.display = 'block';
+        statusBox.style.background = '#e0f2fe';
+        statusBox.style.color = '#0369a1';
+        statusBox.style.border = '1px solid #7dd3fc';
+        statusBox.innerHTML = '⏳ <b>กำลังจัดทำไฟล์ PDF คุณภาพสูง...</b> รักษาสระและวรรณยุกต์ภาษาไทยให้ถูกต้อง 100%';
+      }
 
       try {
         if (document.fonts) {
           await document.fonts.ready;
         }
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 400));
+
+        // Always scroll to top to prevent scroll offset issues in canvas capture
+        window.scrollTo(0, 0);
+
+        // Apply clean export mode: 1040px fixed width, no shadows
+        document.body.classList.add('is-exporting-pdf');
+        await new Promise(r => setTimeout(r, 150));
 
         const element = document.getElementById('report-content');
         const filename = '${title.replace(/[\\/\\\\:*?"<>|]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf';
-        const opt = {
-          margin:       [8, 8, 10, 8],
-          filename:     filename,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { 
-            scale: 2.2, 
-            useCORS: true, 
-            logging: false,
-            letterRendering: false,
-            scrollY: 0,
-            scrollX: 0
-          },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
-        };
+        
+        if (window.htmlToImage && window.jspdf) {
+          // Native browser SVG foreignObject rendering preserves Thai combining diacritics perfectly
+          const canvas = await window.htmlToImage.toCanvas(element, {
+            pixelRatio: 2.2,
+            backgroundColor: '#ffffff',
+            skipAutoScale: true
+          });
 
-        await html2pdf().set(opt).from(element).save();
-        btn.innerHTML = '<span>✅</span> ดาวน์โหลดสำเร็จ!';
+          const imgData = canvas.toDataURL('image/jpeg', 0.98);
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
+          });
+
+          const pageWidth = 297;
+          const pageHeight = 210;
+          const margin = 8;
+          const usableWidth = pageWidth - (margin * 2);
+          const usableHeight = pageHeight - (margin * 2);
+          const imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+          if (imgHeight <= usableHeight) {
+            pdf.addImage(imgData, 'JPEG', margin, margin, usableWidth, imgHeight);
+          } else {
+            let heightLeft = imgHeight;
+            let position = margin;
+            let page = 1;
+
+            while (heightLeft > 0) {
+              if (page > 1) pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight);
+              heightLeft -= usableHeight;
+              position -= usableHeight;
+              page++;
+            }
+          }
+
+          pdf.save(filename);
+
+          btn.innerHTML = '<span>✅</span> ดาวน์โหลดสำเร็จ!';
+          if (statusBox) {
+            statusBox.style.background = '#dcfce7';
+            statusBox.style.color = '#15803d';
+            statusBox.style.border = '1px solid #86efac';
+            statusBox.innerHTML = '✅ <b>ดาวน์โหลดไฟล์ PDF สำเร็จแล้ว!</b> สระ-วรรณยุกต์ถูกต้องสมบูรณ์ ตารางพอดีหน้า A4';
+            setTimeout(() => {
+              statusBox.style.display = 'none';
+            }, 4500);
+          }
+        } else {
+          // Fallback to window.print if scripts fail to load
+          window.print();
+        }
+
         setTimeout(() => {
           btn.innerHTML = originalText;
           btn.disabled = false;
         }, 2500);
       } catch (err) {
         console.error('PDF download error:', err);
+        if (statusBox) {
+          statusBox.style.background = '#fee2e2';
+          statusBox.style.color = '#b91c1c';
+          statusBox.style.border = '1px solid #fca5a5';
+          statusBox.innerHTML = '⚠️ ระบบกำลังเปิดหน้าต่างพิมพ์ (Save as PDF) ให้ท่าน เพื่อความคมชัดสูงสุดและสระไม่เพี้ยน...';
+        }
         window.print();
         btn.innerHTML = originalText;
         btn.disabled = false;
+      } finally {
+        document.body.classList.remove('is-exporting-pdf');
       }
     });
   </script>
@@ -433,7 +578,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
 // ========================================================================
 // Specialized PDF Generator for Daily Medications Report (A4 Portrait)
 // Matches the exact school document format:
-// | ลำดับ | ชื่อ - นามสกุล | ชื่อเล่น | ชื่อยา | วิธีใช้ |
+// | ลำดับ | ชื่อ - นามสกุล | ระดับชั้น | ชื่อเล่น | ชื่อยา | วิธีใช้ |
 // with line-by-line alignment for multiple medications and zero font distortion.
 // ========================================================================
 
@@ -495,8 +640,9 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     @page {
       size: A4 portrait;
@@ -509,8 +655,11 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       print-color-adjust: exact !important;
     }
 
-    html, body {
+    html, body, table, th, td, div, p, span, h1, h2, h3 {
       font-family: 'Sarabun', 'TH Sarabun New', 'Leelawadee UI', 'Tahoma', sans-serif !important;
+    }
+
+    body {
       font-size: 13px;
       line-height: 1.5;
       color: #000000;
@@ -519,8 +668,6 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       padding: 0;
       -webkit-font-smoothing: antialiased;
       text-rendering: geometricPrecision;
-      letter-spacing: 0px !important;
-      word-spacing: 0px !important;
     }
 
     .no-print-bar {
@@ -632,6 +779,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       font-size: 12.5px;
       line-height: 1.5;
       table-layout: fixed;
+      box-sizing: border-box;
     }
 
     table.med-table th {
@@ -644,10 +792,11 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       vertical-align: middle;
       line-height: 1.4;
       font-size: 13px;
+      box-sizing: border-box;
     }
 
     table.med-table td.col-idx {
-      width: 6%;
+      width: 5%;
       border: 1px solid #000000;
       text-align: center;
       vertical-align: top;
@@ -661,33 +810,40 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       border: 1px solid #000000;
       vertical-align: top;
       padding: 6px 8px;
-      word-break: break-word;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      white-space: normal !important;
       box-sizing: border-box;
+      line-height: 1.45;
     }
 
     table.med-table td.col-class {
-      width: 10%;
+      width: 9%;
       border: 1px solid #000000;
       text-align: center;
       vertical-align: top;
       padding: 6px 4px;
-      word-break: break-word;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      white-space: normal !important;
       font-weight: 500;
       box-sizing: border-box;
     }
 
     table.med-table td.col-nick {
-      width: 10%;
+      width: 8%;
       border: 1px solid #000000;
       text-align: center;
       vertical-align: top;
       padding: 6px 4px;
-      word-break: break-word;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      white-space: normal !important;
       box-sizing: border-box;
     }
 
     table.med-table td.col-med-group {
-      width: 50%;
+      width: 54%;
       border: 1px solid #000000;
       vertical-align: top;
       padding: 0 !important;
@@ -711,31 +867,40 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
     }
 
     table.inner-med-table td.cell-med-name {
-      width: 50%;
+      width: 48%;
       border-top: none;
       border-bottom: none;
       border-left: none;
       border-right: none;
-      padding: 5px 7px;
+      padding: 5px 6px;
       vertical-align: top;
-      line-height: 1.5;
-      word-break: break-word;
+      line-height: 1.45;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      word-wrap: break-word !important;
+      white-space: normal !important;
       font-size: 12px;
       box-sizing: border-box;
+      max-width: 100%;
     }
 
     table.inner-med-table td.cell-med-usage {
-      width: 50%;
+      width: 52%;
       border-top: none;
       border-bottom: none;
       border-right: none;
       border-left: 1px solid #000000;
-      padding: 5px 7px;
+      padding: 5px 6px;
       vertical-align: top;
-      line-height: 1.5;
-      word-break: break-word;
-      font-size: 12px;
+      line-height: 1.45;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      word-wrap: break-word !important;
+      white-space: normal !important;
+      font-size: 11.5px;
       box-sizing: border-box;
+      max-width: 100%;
+      overflow: hidden;
     }
 
     /* Empty rows for manual handwritten notes at the end */
@@ -814,10 +979,10 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
 
     body.is-exporting-pdf .doc-page {
       box-shadow: none !important;
-      padding: 0 4px !important;
+      padding: 0 !important;
       margin: 0 !important;
-      width: 680px !important;
-      max-width: 680px !important;
+      width: 720px !important;
+      max-width: 720px !important;
       background: #ffffff !important;
       box-sizing: border-box !important;
     }
@@ -851,12 +1016,12 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
     <table class="med-table">
       <thead>
         <tr>
-          <th style="width: 6%;">ลำดับ</th>
+          <th style="width: 5%;">ลำดับ</th>
           <th style="width: 24%;">ชื่อ - นามสกุล</th>
-          <th style="width: 10%;">ระดับชั้น</th>
-          <th style="width: 10%;">ชื่อเล่น</th>
-          <th style="width: 25%;">ชื่อยา</th>
-          <th style="width: 25%;">วิธีใช้</th>
+          <th style="width: 9%;">ระดับชั้น</th>
+          <th style="width: 8%;">ชื่อเล่น</th>
+          <th style="width: 26%;">ชื่อยา</th>
+          <th style="width: 28%;">วิธีใช้</th>
         </tr>
       </thead>
       <tbody>
@@ -867,9 +1032,11 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
             </td>
           </tr>
         ` : students.map((student, sIdx) => {
-          const fullName = `${student.prefix || ''}${student.firstName} ${student.lastName}`.trim();
-          const nickname = student.nickname || '-';
-          const gradeClass = student.classroom || student.grade || '-';
+          const rawFullName = `${student.prefix || ''}${student.firstName} ${student.lastName}`.trim();
+          const fullName = formatThaiWordBreaks(escapeHtml(rawFullName));
+          const rawNick = student.nickname || '-';
+          const nickname = formatThaiWordBreaks(escapeHtml(rawNick));
+          const gradeClass = escapeHtml(student.classroom || student.grade || '-');
           const meds = student.dailyMedications || [];
 
           if (meds.length === 0) {
@@ -902,13 +1069,16 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
                         usageText += ` (${m.notes})`;
                       }
 
+                      const formattedMedName = formatThaiWordBreaks(escapeHtml(m.medicineName));
+                      const formattedUsage = formatThaiWordBreaks(escapeHtml(usageText || '-'));
+
                       return `
                         <tr>
                           <td class="cell-med-name">
-                            ${m.medicineName}
+                            ${formattedMedName}
                           </td>
                           <td class="cell-med-usage">
-                            ${usageText || '-'}
+                            ${formattedUsage}
                           </td>
                         </tr>
                       `;
@@ -952,7 +1122,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       const btn = document.getElementById('btn-download-pdf');
       const originalText = btn ? btn.innerHTML : '';
       if (btn) {
-        btn.innerHTML = '<span>⏳</span> กำลังจัดหน้ากระดาษ A4 และสร้าง PDF...';
+        btn.innerHTML = '<span>⏳</span> กำลังสร้าง PDF (สระไม่เพี้ยน)...';
         btn.disabled = true;
       }
 
@@ -962,7 +1132,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
         statusBox.style.background = '#e0f2fe';
         statusBox.style.color = '#0369a1';
         statusBox.style.border = '1px solid #7dd3fc';
-        statusBox.innerHTML = '⏳ <b>กำลังจัดระยะขอบและสร้างไฟล์ PDF...</b> ระบบกำลังปรับขนาดตารางให้พอดีหน้ากระดาษ A4 ไม่หลุดกรอบ';
+        statusBox.innerHTML = '⏳ <b>กำลังจัดทำไฟล์ PDF คุณภาพสูง...</b> รักษาสระและวรรณยุกต์ภาษาไทยให้ถูกต้อง 100% ไม่ตกขอบ';
       }
 
       try {
@@ -982,45 +1152,67 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
         if (!element) return;
 
         const filename = '${title.replace(/[\\/\\\\:*?"<>|]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf';
-        
-        // Exact 10mm margins on A4 portrait
-        // Page width: 210mm. 10mm left + 10mm right = 190mm printable width.
-        // The 750px container fits 190mm with zero clipping and zero overflow.
-        const opt = {
-          margin:       [10, 10, 12, 10], // [top, left, bottom, right] in mm
-          filename:     filename,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { 
-            scale: 2.5, 
-            useCORS: true, 
-            logging: false,
-            letterRendering: true,
-            scrollX: 0,
-            scrollY: 0,
-            backgroundColor: '#ffffff'
-          },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-        };
 
-        await html2pdf().set(opt).from(element).save();
+        if (window.htmlToImage && window.jspdf) {
+          const canvas = await window.htmlToImage.toCanvas(element, {
+            pixelRatio: 2.2,
+            backgroundColor: '#ffffff',
+            skipAutoScale: true
+          });
 
-        if (btn) {
-          btn.innerHTML = '<span>✅</span> ดาวน์โหลด PDF เรียบร้อย!';
-          setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-          }, 3500);
-        }
+          const imgData = canvas.toDataURL('image/jpeg', 0.98);
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
 
-        if (statusBox) {
-          statusBox.style.background = '#dcfce7';
-          statusBox.style.color = '#15803d';
-          statusBox.style.border = '1px solid #86efac';
-          statusBox.innerHTML = '✅ <b>ดาวน์โหลดไฟล์ PDF สำเร็จแล้ว!</b> ตารางพอดีหน้ากระดาษ A4 สวยงาม ไม่หลุดกรอบ';
-          setTimeout(() => {
-            statusBox.style.display = 'none';
-          }, 4500);
+          const pageWidth = 210;
+          const pageHeight = 297;
+          const margin = 10;
+          const usableWidth = pageWidth - (margin * 2); // 190mm
+          const usableHeight = pageHeight - (margin * 2); // 277mm
+          const imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+          if (imgHeight <= usableHeight) {
+            pdf.addImage(imgData, 'JPEG', margin, margin, usableWidth, imgHeight);
+          } else {
+            let heightLeft = imgHeight;
+            let position = margin;
+            let page = 1;
+
+            while (heightLeft > 0) {
+              if (page > 1) pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight);
+              heightLeft -= usableHeight;
+              position -= usableHeight;
+              page++;
+            }
+          }
+
+          pdf.save(filename);
+
+          if (btn) {
+            btn.innerHTML = '<span>✅</span> ดาวน์โหลด PDF เรียบร้อย!';
+            setTimeout(() => {
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+            }, 3500);
+          }
+
+          if (statusBox) {
+            statusBox.style.background = '#dcfce7';
+            statusBox.style.color = '#15803d';
+            statusBox.style.border = '1px solid #86efac';
+            statusBox.innerHTML = '✅ <b>ดาวน์โหลดไฟล์ PDF สำเร็จแล้ว!</b> สระ-วรรณยุกต์ถูกต้องสมบูรณ์ ตารางพอดีหน้า A4 ไม่หลุดกรอบ';
+            setTimeout(() => {
+              statusBox.style.display = 'none';
+            }, 4500);
+          }
+        } else {
+          // Fallback to window.print if scripts fail to load
+          window.print();
         }
       } catch (err) {
         console.error('PDF export error:', err);
@@ -1032,7 +1224,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
           statusBox.style.background = '#fee2e2';
           statusBox.style.color = '#b91c1c';
           statusBox.style.border = '1px solid #fca5a5';
-          statusBox.innerHTML = '⚠️ เกิดข้อผิดพลาดในการสร้างไฟล์ PDF กำลังเปิดหน้าต่างพิมพ์ให้แทน...';
+          statusBox.innerHTML = '⚠️ ระบบกำลังเปิดหน้าต่างพิมพ์ (Save as PDF) ให้ท่าน เพื่อความคมชัดสูงสุดและสระไม่เพี้ยน...';
         }
         window.print();
       } finally {

@@ -290,25 +290,29 @@ export const AllergiesCardView: React.FC<AllergiesCardViewProps> = ({
       schoolLogo: systemConfig?.schoolLogo,
       showIndex: true,
       columns: [
-        { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
-        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
-        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '90px', align: 'center' },
-        { header: 'หมู่เลือด', key: 'bloodType', width: '65px', align: 'center' },
-        { header: 'ประวัติแพ้ยา (ความรุนแรง / อาการ)', key: 'drugAllergies', width: '250px', align: 'left' },
-        { header: 'ประวัติแพ้อาหาร (ความรุนแรง / อาการ)', key: 'foodAllergies', width: '250px', align: 'left' }
+        { header: 'รหัส', key: 'studentCode', width: '8%', align: 'center' },
+        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '20%', align: 'left' },
+        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '9%', align: 'center' },
+        { header: 'หมู่เลือด', key: 'bloodType', width: '8%', align: 'center' },
+        { header: 'ประวัติแพ้ยา (ความรุนแรง / อาการ)', key: 'drugAllergies', width: '25%', align: 'left' },
+        { header: 'ประวัติแพ้อาหาร (ความรุนแรง / อาการ)', key: 'foodAllergies', width: '25%', align: 'left' }
       ],
-      rows: filteredStudents.map((s) => ({
-        studentCode: s.studentCode,
-        fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
-        classroom: s.classroom,
-        bloodType: s.bloodType,
-        drugAllergies: (s.drugAllergies || []).length > 0 
-          ? (s.drugAllergies || []).map(d => `• ${d.drugName} [${d.severity}]\n  อาการ: ${d.reaction || '-'}`).join('\n\n') 
-          : '-',
-        foodAllergies: (s.foodAllergies || []).length > 0
-          ? (s.foodAllergies || []).map(f => `• ${f.foodName} [${f.severity}]\n  อาการ: ${f.reaction || '-'}`).join('\n\n')
-          : '-'
-      })),
+      rows: filteredStudents.map((s) => {
+        const nick = s.nickname ? ` (${s.nickname})` : '';
+        const fullName = `${s.prefix || ''}${s.firstName} ${s.lastName}${nick}`.trim();
+        return {
+          studentCode: s.studentCode,
+          fullName,
+          classroom: s.classroom || s.grade || '-',
+          bloodType: s.bloodType && s.bloodType !== 'ไม่ระบุ' ? s.bloodType : '-',
+          drugAllergies: (s.drugAllergies || []).length > 0 
+            ? (s.drugAllergies || []).map(d => `• ${d.drugName} [${d.severity || 'ไม่ระบุ'}]\n  อาการ: ${d.reaction || '-'}`).join('\n') 
+            : '-',
+          foodAllergies: (s.foodAllergies || []).length > 0
+            ? (s.foodAllergies || []).map(f => `• ${f.foodName} [${f.severity || 'ไม่ระบุ'}]\n  อาการ: ${f.reaction || '-'}`).join('\n')
+            : '-'
+        };
+      }),
       summaryStats: [
         { label: 'จำนวนนักเรียนที่พบ', value: `${filteredStudents.length} คน` },
         { label: 'รายการแพ้ยา', value: `${totalDrugAllergiesCount} รายการ` },
