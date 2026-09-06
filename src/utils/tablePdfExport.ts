@@ -137,15 +137,21 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       margin-bottom: 6px;
     }
 
+    :root {
+      --report-table-fz: 14px;
+      --report-th-fz: 14.5px;
+      --report-line-height: 1.55;
+    }
+
     .school-name {
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 700;
       color: #0f766e;
       margin: 0;
     }
 
     .report-title {
-      font-size: 16px;
+      font-size: 18.5px;
       font-weight: 600;
       color: #0f172a;
       margin: 6px 0 0 0;
@@ -158,9 +164,9 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 6px;
-      padding: 8px 12px;
+      padding: 9px 14px;
       margin-bottom: 14px;
-      font-size: 11.5px;
+      font-size: 13px;
     }
 
     .stat-item {
@@ -180,7 +186,7 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11.5px;
+      font-size: var(--report-table-fz, 14px);
       margin-bottom: 20px;
       table-layout: fixed;
       box-sizing: border-box;
@@ -189,23 +195,25 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
     th {
       background-color: #0f766e !important;
       color: #ffffff !important;
-      font-weight: 600;
+      font-weight: 700;
       text-align: left;
-      padding: 8px 6px;
+      padding: 9px 8px;
       border: 1px solid #0d9488;
       line-height: 1.4;
+      font-size: var(--report-th-fz, 14.5px);
       box-sizing: border-box;
     }
 
     td {
-      padding: 6px 8px;
+      padding: 7px 9px;
       border: 1px solid #cbd5e1;
       vertical-align: top;
       word-break: break-word !important;
       overflow-wrap: anywhere !important;
       word-wrap: break-word !important;
       white-space: normal !important;
-      line-height: 1.5;
+      line-height: var(--report-line-height, 1.55);
+      font-size: var(--report-table-fz, 14px);
       box-sizing: border-box;
       max-width: 100%;
     }
@@ -214,7 +222,8 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
       display: block;
       margin: 0;
       padding: 1px 0;
-      line-height: 1.5;
+      line-height: var(--report-line-height, 1.55);
+      font-size: var(--report-table-fz, 14px);
       word-break: break-word !important;
       overflow-wrap: anywhere !important;
       word-wrap: break-word !important;
@@ -238,8 +247,8 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
 
     .signature-box {
       text-align: center;
-      width: 250px;
-      font-size: 12px;
+      width: 280px;
+      font-size: 13.5px;
     }
 
     .signature-line {
@@ -367,7 +376,13 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
         💡 <b>คำแนะนำ:</b> สามารถกด <b>"ดาวน์โหลดทันที (.pdf)"</b> หรือกด <b>"บันทึกเป็น PDF / พิมพ์"</b> (เลือก Destination: Save as PDF) เพื่อความคมชัด 100%
       </div>
     </div>
-    <div class="btn-actions">
+    <div class="btn-actions" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <div class="fs-control-group" style="display: flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 8px; border-radius: 8px;">
+        <span style="font-size: 12.5px; font-weight: 600; color: #334155; margin-right: 2px;">🔍 ขนาดตัวอักษร:</span>
+        <button type="button" class="btn-fs" id="fs-normal" onclick="setFontSizeLevel('normal')" style="padding: 5px 10px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: #475569;">ปกติ (12px)</button>
+        <button type="button" class="btn-fs active" id="fs-large" onclick="setFontSizeLevel('large')" style="padding: 5px 10px; border: 1.5px solid #0f766e; background: #0f766e; color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 700;">ใหญ่ (14px) ★</button>
+        <button type="button" class="btn-fs" id="fs-xlarge" onclick="setFontSizeLevel('xlarge')" style="padding: 5px 10px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: #475569;">ใหญ่พิเศษ (16px)</button>
+      </div>
       <button class="btn-print" onclick="window.print()">
         <span>🖨️</span> บันทึกเป็น PDF / พิมพ์ (แนะนำ คมชัด 100%)
       </button>
@@ -565,6 +580,53 @@ export const exportTableAsPDF = (options: PdfReportOptions) => {
         document.body.classList.remove('is-exporting-pdf');
       }
     });
+
+    // Font size switcher handler
+    window.setFontSizeLevel = function(level) {
+      const root = document.documentElement;
+      const bNormal = document.getElementById('fs-normal');
+      const bLarge = document.getElementById('fs-large');
+      const bXlarge = document.getElementById('fs-xlarge');
+
+      [bNormal, bLarge, bXlarge].forEach(b => {
+        if (b) {
+          b.style.background = '#ffffff';
+          b.style.color = '#475569';
+          b.style.border = '1px solid #cbd5e1';
+          b.style.fontWeight = '500';
+        }
+      });
+
+      if (level === 'normal') {
+        root.style.setProperty('--report-table-fz', '12px');
+        root.style.setProperty('--report-th-fz', '12.5px');
+        if (bNormal) {
+          bNormal.style.background = '#0f766e';
+          bNormal.style.color = '#ffffff';
+          bNormal.style.border = '1.5px solid #0f766e';
+          bNormal.style.fontWeight = '700';
+        }
+      } else if (level === 'xlarge') {
+        root.style.setProperty('--report-table-fz', '16px');
+        root.style.setProperty('--report-th-fz', '16.5px');
+        if (bXlarge) {
+          bXlarge.style.background = '#0f766e';
+          bXlarge.style.color = '#ffffff';
+          bXlarge.style.border = '1.5px solid #0f766e';
+          bXlarge.style.fontWeight = '700';
+        }
+      } else {
+        // default 'large' (14px)
+        root.style.setProperty('--report-table-fz', '14px');
+        root.style.setProperty('--report-th-fz', '14.5px');
+        if (bLarge) {
+          bLarge.style.background = '#0f766e';
+          bLarge.style.color = '#ffffff';
+          bLarge.style.border = '1.5px solid #0f766e';
+          bLarge.style.fontWeight = '700';
+        }
+      }
+    };
   </script>
 </body>
 </html>
@@ -757,13 +819,20 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       box-sizing: border-box;
     }
 
+    :root {
+      --med-table-fz: 14px;
+      --med-th-fz: 14.5px;
+      --med-usage-fz: 13.5px;
+      --med-title-fz: 21px;
+    }
+
     .doc-title-container {
       text-align: center;
       margin-bottom: 16px;
     }
 
     .doc-title {
-      font-size: 18px;
+      font-size: var(--med-title-fz, 21px);
       font-weight: 700;
       color: #000000;
       margin: 0;
@@ -776,7 +845,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       width: 100%;
       border-collapse: collapse;
       border: 1px solid #000000;
-      font-size: 12.5px;
+      font-size: var(--med-table-fz, 14px);
       line-height: 1.5;
       table-layout: fixed;
       box-sizing: border-box;
@@ -787,11 +856,11 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       background-color: #ffffff;
       color: #000000;
       font-weight: 700;
-      padding: 6px 4px;
+      padding: 7px 5px;
       text-align: center;
       vertical-align: middle;
       line-height: 1.4;
-      font-size: 13px;
+      font-size: var(--med-th-fz, 14.5px);
       box-sizing: border-box;
     }
 
@@ -803,6 +872,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       padding: 6px 4px;
       font-weight: 500;
       box-sizing: border-box;
+      font-size: var(--med-table-fz, 14px);
     }
 
     table.med-table td.col-name {
@@ -815,6 +885,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       white-space: normal !important;
       box-sizing: border-box;
       line-height: 1.45;
+      font-size: var(--med-table-fz, 14px);
     }
 
     table.med-table td.col-class {
@@ -828,6 +899,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       white-space: normal !important;
       font-weight: 500;
       box-sizing: border-box;
+      font-size: var(--med-table-fz, 14px);
     }
 
     table.med-table td.col-nick {
@@ -840,6 +912,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       overflow-wrap: anywhere !important;
       white-space: normal !important;
       box-sizing: border-box;
+      font-size: var(--med-table-fz, 14px);
     }
 
     table.med-table td.col-med-group {
@@ -872,14 +945,14 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       border-bottom: none;
       border-left: none;
       border-right: none;
-      padding: 5px 6px;
+      padding: 6px 7px;
       vertical-align: top;
       line-height: 1.45;
       word-break: break-word !important;
       overflow-wrap: anywhere !important;
       word-wrap: break-word !important;
       white-space: normal !important;
-      font-size: 12px;
+      font-size: var(--med-table-fz, 14px);
       box-sizing: border-box;
       max-width: 100%;
     }
@@ -890,14 +963,14 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       border-bottom: none;
       border-right: none;
       border-left: 1px solid #000000;
-      padding: 5px 6px;
+      padding: 6px 7px;
       vertical-align: top;
       line-height: 1.45;
       word-break: break-word !important;
       overflow-wrap: anywhere !important;
       word-wrap: break-word !important;
       white-space: normal !important;
-      font-size: 11.5px;
+      font-size: var(--med-usage-fz, 13.5px);
       box-sizing: border-box;
       max-width: 100%;
       overflow: hidden;
@@ -920,7 +993,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
     .signature-card {
       text-align: center;
       width: 270px;
-      font-size: 12.5px;
+      font-size: 13.5px;
       line-height: 1.6;
     }
 
@@ -996,7 +1069,13 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
         💡 <b>เคล็ดลับ:</b> ทั้งปุ่มดาวน์โหลดไฟล์ .pdf โดยตรง และปุ่มบันทึกเป็น PDF ถูกปรับแต่งให้พอดีหน้ากระดาษ A4 สระภาษาไทยคมชัด 100% ไม่ตกขอบ
       </span>
     </div>
-    <div class="btn-actions">
+    <div class="btn-actions" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <div class="fs-control-group" style="display: flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 8px; border-radius: 8px;">
+        <span style="font-size: 12.5px; font-weight: 600; color: #334155; margin-right: 2px;">🔍 ขนาดตัวอักษร:</span>
+        <button type="button" class="btn-fs" id="fs-med-normal" onclick="setFontSizeLevelMed('normal')" style="padding: 5px 10px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: #475569;">ปกติ (12.5px)</button>
+        <button type="button" class="btn-fs active" id="fs-med-large" onclick="setFontSizeLevelMed('large')" style="padding: 5px 10px; border: 1.5px solid #0f766e; background: #0f766e; color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 700;">ใหญ่ (14px) ★</button>
+        <button type="button" class="btn-fs" id="fs-med-xlarge" onclick="setFontSizeLevelMed('xlarge')" style="padding: 5px 10px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: #475569;">ใหญ่พิเศษ (16px)</button>
+      </div>
       <button class="btn-print" onclick="window.print()">
         <span>🖨️</span> บันทึกเป็น PDF / พิมพ์
       </button>
@@ -1260,6 +1339,56 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
         }, 500);
       });
     ` : ''}
+
+    // Font size switcher handler for Daily Medications
+    window.setFontSizeLevelMed = function(level) {
+      const root = document.documentElement;
+      const bNormal = document.getElementById('fs-med-normal');
+      const bLarge = document.getElementById('fs-med-large');
+      const bXlarge = document.getElementById('fs-med-xlarge');
+
+      [bNormal, bLarge, bXlarge].forEach(b => {
+        if (b) {
+          b.style.background = '#ffffff';
+          b.style.color = '#475569';
+          b.style.border = '1px solid #cbd5e1';
+          b.style.fontWeight = '500';
+        }
+      });
+
+      if (level === 'normal') {
+        root.style.setProperty('--med-table-fz', '12.5px');
+        root.style.setProperty('--med-th-fz', '13px');
+        root.style.setProperty('--med-usage-fz', '12px');
+        if (bNormal) {
+          bNormal.style.background = '#0f766e';
+          bNormal.style.color = '#ffffff';
+          bNormal.style.border = '1.5px solid #0f766e';
+          bNormal.style.fontWeight = '700';
+        }
+      } else if (level === 'xlarge') {
+        root.style.setProperty('--med-table-fz', '16px');
+        root.style.setProperty('--med-th-fz', '16.5px');
+        root.style.setProperty('--med-usage-fz', '15px');
+        if (bXlarge) {
+          bXlarge.style.background = '#0f766e';
+          bXlarge.style.color = '#ffffff';
+          bXlarge.style.border = '1.5px solid #0f766e';
+          bXlarge.style.fontWeight = '700';
+        }
+      } else {
+        // default 'large' (14px)
+        root.style.setProperty('--med-table-fz', '14px');
+        root.style.setProperty('--med-th-fz', '14.5px');
+        root.style.setProperty('--med-usage-fz', '13.5px');
+        if (bLarge) {
+          bLarge.style.background = '#0f766e';
+          bLarge.style.color = '#ffffff';
+          bLarge.style.border = '1.5px solid #0f766e';
+          bLarge.style.fontWeight = '700';
+        }
+      }
+    };
   </script>
 </body>
 </html>
