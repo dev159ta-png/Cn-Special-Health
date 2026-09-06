@@ -444,6 +444,7 @@ export interface DailyMedicationPdfStudent {
   firstName: string;
   lastName: string;
   nickname?: string;
+  grade?: string;
   classroom?: string;
   gender?: 'ชาย' | 'หญิง' | string;
   dailyMedications: {
@@ -464,6 +465,8 @@ export interface DailyMedicationsPdfConfig {
   showSignature?: boolean;
   signatureTitle?: string;
   reportDate?: string;
+  autoPrint?: boolean;
+  autoDownload?: boolean;
 }
 
 export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => {
@@ -473,7 +476,9 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
     students = [],
     emptyRowsCount = 4,
     showSignature = true,
-    signatureTitle = 'ผู้ดูแล / เจ้าหน้าที่ห้องพยาบาล'
+    signatureTitle = 'ผู้ดูแลหอนอน / เจ้าหน้าที่ห้องพยาบาล',
+    autoPrint = false,
+    autoDownload = false
   } = config;
 
   const printWindow = window.open('', '_blank');
@@ -490,33 +495,32 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     @page {
       size: A4 portrait;
-      margin: 15mm 12mm 15mm 12mm;
+      margin: 10mm 10mm 12mm 10mm;
     }
 
     * {
       box-sizing: border-box;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      font-family: 'Sarabun', 'TH Sarabun New', 'Leelawadee UI', 'Tahoma', sans-serif !important;
-      letter-spacing: 0px !important;
-      word-spacing: 0px !important;
     }
 
-    body {
-      font-family: 'Sarabun', 'TH Sarabun New', 'Leelawadee UI', 'Tahoma', sans-serif;
+    html, body {
+      font-family: 'Sarabun', 'TH Sarabun New', 'Leelawadee UI', 'Tahoma', sans-serif !important;
       font-size: 13px;
-      line-height: 1.6;
+      line-height: 1.5;
       color: #000000;
       background: #f1f5f9;
       margin: 0;
       padding: 0;
       -webkit-font-smoothing: antialiased;
       text-rendering: geometricPrecision;
+      letter-spacing: 0px !important;
+      word-spacing: 0px !important;
     }
 
     .no-print-bar {
@@ -562,14 +566,14 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       border: none;
       padding: 9px 18px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       border-radius: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
       transition: background 0.15s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
 
     .btn-print:hover {
@@ -597,21 +601,22 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
     }
 
     .doc-page {
-      max-width: 794px; /* Standard A4 width in pixels at 96 DPI */
+      max-width: 794px; /* A4 width at 96 DPI */
       margin: 18px auto;
       background: #ffffff;
-      padding: 28px 32px 35px 32px;
+      padding: 24px 28px 30px 28px;
       box-shadow: 0 4px 14px rgba(0,0,0,0.08);
       border-radius: 4px;
+      box-sizing: border-box;
     }
 
     .doc-title-container {
       text-align: center;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .doc-title {
-      font-size: 19px;
+      font-size: 18px;
       font-weight: 700;
       color: #000000;
       margin: 0;
@@ -619,13 +624,13 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       line-height: 1.4;
     }
 
-    /* Strict Government/School Table Format */
+    /* Strict School/Government Table Format */
     table.med-table {
       width: 100%;
       border-collapse: collapse;
       border: 1px solid #000000;
       font-size: 12.5px;
-      line-height: 1.6;
+      line-height: 1.5;
       table-layout: fixed;
     }
 
@@ -634,44 +639,60 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       background-color: #ffffff;
       color: #000000;
       font-weight: 700;
-      padding: 7px 6px;
+      padding: 6px 4px;
       text-align: center;
       vertical-align: middle;
       line-height: 1.4;
+      font-size: 13px;
     }
 
     table.med-table td.col-idx {
-      width: 7%;
+      width: 6%;
       border: 1px solid #000000;
       text-align: center;
       vertical-align: top;
-      padding: 7px 4px;
+      padding: 6px 4px;
       font-weight: 500;
+      box-sizing: border-box;
     }
 
     table.med-table td.col-name {
-      width: 27%;
+      width: 24%;
       border: 1px solid #000000;
       vertical-align: top;
-      padding: 7px 8px;
+      padding: 6px 8px;
       word-break: break-word;
+      box-sizing: border-box;
     }
 
-    table.med-table td.col-nick {
-      width: 12%;
+    table.med-table td.col-class {
+      width: 10%;
       border: 1px solid #000000;
       text-align: center;
       vertical-align: top;
-      padding: 7px 4px;
+      padding: 6px 4px;
       word-break: break-word;
+      font-weight: 500;
+      box-sizing: border-box;
+    }
+
+    table.med-table td.col-nick {
+      width: 10%;
+      border: 1px solid #000000;
+      text-align: center;
+      vertical-align: top;
+      padding: 6px 4px;
+      word-break: break-word;
+      box-sizing: border-box;
     }
 
     table.med-table td.col-med-group {
-      width: 54%;
+      width: 50%;
       border: 1px solid #000000;
       vertical-align: top;
       padding: 0 !important;
       margin: 0 !important;
+      box-sizing: border-box;
     }
 
     /* Inner paired medication table for pixel-perfect line-by-line alignment */
@@ -682,38 +703,50 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
       margin: 0;
       padding: 0;
       table-layout: fixed;
+      box-sizing: border-box;
+    }
+
+    table.inner-med-table tr:not(:last-child) td {
+      border-bottom: 1px solid #000000;
     }
 
     table.inner-med-table td.cell-med-name {
       width: 50%;
-      border: none;
-      padding: 6px 8px;
+      border-top: none;
+      border-bottom: none;
+      border-left: none;
+      border-right: none;
+      padding: 5px 7px;
       vertical-align: top;
-      line-height: 1.6;
+      line-height: 1.5;
       word-break: break-word;
-      font-size: 12.5px;
+      font-size: 12px;
+      box-sizing: border-box;
     }
 
     table.inner-med-table td.cell-med-usage {
       width: 50%;
-      border: none;
+      border-top: none;
+      border-bottom: none;
+      border-right: none;
       border-left: 1px solid #000000;
-      padding: 6px 8px;
+      padding: 5px 7px;
       vertical-align: top;
-      line-height: 1.6;
+      line-height: 1.5;
       word-break: break-word;
-      font-size: 12.5px;
+      font-size: 12px;
+      box-sizing: border-box;
     }
 
     /* Empty rows for manual handwritten notes at the end */
     table.med-table tr.empty-row td {
       border: 1px solid #000000;
-      height: 32px;
-      padding: 4px;
+      height: 28px;
+      padding: 3px;
     }
 
     .signature-area {
-      margin-top: 35px;
+      margin-top: 30px;
       display: flex;
       justify-content: flex-end;
       page-break-inside: avoid;
@@ -721,25 +754,29 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
 
     .signature-card {
       text-align: center;
-      width: 260px;
+      width: 270px;
       font-size: 12.5px;
       line-height: 1.6;
     }
 
     .sig-dots {
       border-bottom: 1px dotted #475569;
-      height: 40px;
+      height: 38px;
       margin-bottom: 6px;
     }
 
+    /* Browser Print Mode: clean 100% white background, no grey blocks */
     @media print {
-      .no-print-bar {
+      .no-print-bar, #export-status-banner {
         display: none !important;
       }
-      body {
+      html, body {
         background: #ffffff !important;
+        background-color: #ffffff !important;
         padding: 0 !important;
         margin: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       .doc-page {
         box-shadow: none !important;
@@ -747,10 +784,42 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
         margin: 0 !important;
         max-width: 100% !important;
         width: 100% !important;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
       }
-      tr {
-        page-break-inside: avoid;
+      table.med-table {
+        page-break-inside: auto;
+        width: 100% !important;
       }
+      table.med-table thead {
+        display: table-header-group !important; /* Repeats table header on every page */
+      }
+      table.med-table tr {
+        page-break-inside: avoid !important;
+      }
+    }
+
+    /* Dedicated clean styling active strictly while saving PDF */
+    body.is-exporting-pdf {
+      background: #ffffff !important;
+      background-color: #ffffff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    body.is-exporting-pdf .no-print-bar,
+    body.is-exporting-pdf #export-status-banner {
+      display: none !important;
+    }
+
+    body.is-exporting-pdf .doc-page {
+      box-shadow: none !important;
+      padding: 0 4px !important;
+      margin: 0 !important;
+      width: 680px !important;
+      max-width: 680px !important;
+      background: #ffffff !important;
+      box-sizing: border-box !important;
     }
   </style>
 </head>
@@ -759,18 +828,20 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
     <div class="title-box">
       <span class="title-text">📄 ${title}</span>
       <span class="subtitle-text">
-        💡 <b>คำแนะนำเพื่อให้ภาษาไทยคมชัดที่สุด:</b> กดปุ่ม <b>"🖨️ บันทึกเป็น PDF (คมชัด 100% แนะนำ)"</b> แล้วเลือกปลายทางเป็น <i>Save as PDF / บันทึกเป็น PDF</i> สระและวรรณยุกต์จะไม่เพี้ยนและตัวหนังสือคมกริบ 100%
+        💡 <b>เคล็ดลับ:</b> ทั้งปุ่มดาวน์โหลดไฟล์ .pdf โดยตรง และปุ่มบันทึกเป็น PDF ถูกปรับแต่งให้พอดีหน้ากระดาษ A4 สระภาษาไทยคมชัด 100% ไม่ตกขอบ
       </span>
     </div>
     <div class="btn-actions">
       <button class="btn-print" onclick="window.print()">
-        <span>🖨️</span> บันทึกเป็น PDF (คมชัด 100% แนะนำ)
+        <span>🖨️</span> บันทึกเป็น PDF / พิมพ์
       </button>
       <button class="btn-download" id="btn-download-pdf">
-        <span>📥</span> ดาวน์โหลดไฟล์ .pdf ทันที
+        <span>📥</span> ดาวน์โหลดไฟล์ .pdf โดยตรง
       </button>
     </div>
   </div>
+
+  <div id="export-status-banner" style="display: none; padding: 10px 18px; margin: 12px auto; max-width: 794px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center;"></div>
 
   <div class="doc-page" id="report-content">
     <div class="doc-title-container">
@@ -780,23 +851,25 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
     <table class="med-table">
       <thead>
         <tr>
-          <th style="width: 7%;">ลำดับ</th>
-          <th style="width: 27%;">ชื่อ - นามสกุล</th>
-          <th style="width: 12%;">ชื่อเล่น</th>
-          <th style="width: 27%;">ชื่อยา</th>
-          <th style="width: 27%;">วิธีใช้</th>
+          <th style="width: 6%;">ลำดับ</th>
+          <th style="width: 24%;">ชื่อ - นามสกุล</th>
+          <th style="width: 10%;">ระดับชั้น</th>
+          <th style="width: 10%;">ชื่อเล่น</th>
+          <th style="width: 25%;">ชื่อยา</th>
+          <th style="width: 25%;">วิธีใช้</th>
         </tr>
       </thead>
       <tbody>
         ${students.length === 0 ? `
           <tr>
-            <td colspan="5" style="border: 1px solid #000; text-align: center; padding: 25px; color: #64748b;">
+            <td colspan="6" style="border: 1px solid #000; text-align: center; padding: 25px; color: #64748b;">
               ไม่พบข้อมูลนักเรียนที่กินยาประจำตัว
             </td>
           </tr>
         ` : students.map((student, sIdx) => {
           const fullName = `${student.prefix || ''}${student.firstName} ${student.lastName}`.trim();
           const nickname = student.nickname || '-';
+          const gradeClass = student.classroom || student.grade || '-';
           const meds = student.dailyMedications || [];
 
           if (meds.length === 0) {
@@ -804,6 +877,7 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
               <tr>
                 <td class="col-idx">${sIdx + 1}</td>
                 <td class="col-name">${fullName}</td>
+                <td class="col-class">${gradeClass}</td>
                 <td class="col-nick">${nickname}</td>
                 <td style="border: 1px solid #000; text-align: center; padding: 6px;">-</td>
                 <td style="border: 1px solid #000; text-align: center; padding: 6px;">-</td>
@@ -816,13 +890,12 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
             <tr>
               <td class="col-idx">${sIdx + 1}</td>
               <td class="col-name">${fullName}</td>
+              <td class="col-class">${gradeClass}</td>
               <td class="col-nick">${nickname}</td>
               <td class="col-med-group" colspan="2">
                 <table class="inner-med-table">
                   <tbody>
-                    ${meds.map((m, mIdx) => {
-                      const isLast = mIdx === meds.length - 1;
-                      const borderBottom = isLast ? 'border-bottom: none;' : 'border-bottom: 1px solid #e2e8f0;';
+                    ${meds.map((m) => {
                       const usageParts = [m.dosage, m.timing].filter(Boolean);
                       let usageText = usageParts.join(' ');
                       if (m.notes) {
@@ -831,10 +904,10 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
 
                       return `
                         <tr>
-                          <td class="cell-med-name" style="${borderBottom}">
+                          <td class="cell-med-name">
                             ${m.medicineName}
                           </td>
-                          <td class="cell-med-usage" style="${borderBottom}">
+                          <td class="cell-med-usage">
                             ${usageText || '-'}
                           </td>
                         </tr>
@@ -852,7 +925,8 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
             <td></td>
             <td></td>
             <td></td>
-            <td style="border-right: 1px solid #000;"></td>
+            <td></td>
+            <td></td>
             <td></td>
           </tr>
         `).join('') : ''}
@@ -874,50 +948,126 @@ export const exportDailyMedicationsPDF = (config: DailyMedicationsPdfConfig) => 
   </div>
 
   <script>
-    // Robust high-res PDF direct download
-    document.getElementById('btn-download-pdf').addEventListener('click', async function() {
-      const btn = this;
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<span>⏳</span> กำลังเตรียมแบบอักษรและสร้าง PDF...';
-      btn.disabled = true;
+    async function executeDirectPdfDownload(isAuto) {
+      const btn = document.getElementById('btn-download-pdf');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.innerHTML = '<span>⏳</span> กำลังจัดหน้ากระดาษ A4 และสร้าง PDF...';
+        btn.disabled = true;
+      }
+
+      const statusBox = document.getElementById('export-status-banner');
+      if (statusBox) {
+        statusBox.style.display = 'block';
+        statusBox.style.background = '#e0f2fe';
+        statusBox.style.color = '#0369a1';
+        statusBox.style.border = '1px solid #7dd3fc';
+        statusBox.innerHTML = '⏳ <b>กำลังจัดระยะขอบและสร้างไฟล์ PDF...</b> ระบบกำลังปรับขนาดตารางให้พอดีหน้ากระดาษ A4 ไม่หลุดกรอบ';
+      }
 
       try {
         if (document.fonts) {
           await document.fonts.ready;
         }
-        await new Promise(r => setTimeout(r, 350));
+        await new Promise(r => setTimeout(r, 400));
+
+        // Always scroll to top to prevent scroll offsets in canvas render
+        window.scrollTo(0, 0);
+
+        // Apply clean export mode: 750px fixed width, 0 margin, 0 padding, no shadow
+        document.body.classList.add('is-exporting-pdf');
+        await new Promise(r => setTimeout(r, 150));
 
         const element = document.getElementById('report-content');
+        if (!element) return;
+
         const filename = '${title.replace(/[\\/\\\\:*?"<>|]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf';
         
+        // Exact 10mm margins on A4 portrait
+        // Page width: 210mm. 10mm left + 10mm right = 190mm printable width.
+        // The 750px container fits 190mm with zero clipping and zero overflow.
         const opt = {
-          margin:       [10, 10, 12, 10],
+          margin:       [10, 10, 12, 10], // [top, left, bottom, right] in mm
           filename:     filename,
           image:        { type: 'jpeg', quality: 0.98 },
           html2canvas:  { 
             scale: 2.5, 
             useCORS: true, 
             logging: false,
-            letterRendering: false,
-            backgroundColor: '#ffffff',
-            windowWidth: 794
+            letterRendering: true,
+            scrollX: 0,
+            scrollY: 0,
+            backgroundColor: '#ffffff'
           },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
         await html2pdf().set(opt).from(element).save();
-        btn.innerHTML = '<span>✅</span> ดาวน์โหลดสำเร็จ!';
-        setTimeout(() => {
+
+        if (btn) {
+          btn.innerHTML = '<span>✅</span> ดาวน์โหลด PDF เรียบร้อย!';
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+          }, 3500);
+        }
+
+        if (statusBox) {
+          statusBox.style.background = '#dcfce7';
+          statusBox.style.color = '#15803d';
+          statusBox.style.border = '1px solid #86efac';
+          statusBox.innerHTML = '✅ <b>ดาวน์โหลดไฟล์ PDF สำเร็จแล้ว!</b> ตารางพอดีหน้ากระดาษ A4 สวยงาม ไม่หลุดกรอบ';
+          setTimeout(() => {
+            statusBox.style.display = 'none';
+          }, 4500);
+        }
+      } catch (err) {
+        console.error('PDF export error:', err);
+        if (btn) {
           btn.innerHTML = originalText;
           btn.disabled = false;
-        }, 2500);
-      } catch (err) {
-        console.error('PDF download error:', err);
+        }
+        if (statusBox) {
+          statusBox.style.background = '#fee2e2';
+          statusBox.style.color = '#b91c1c';
+          statusBox.style.border = '1px solid #fca5a5';
+          statusBox.innerHTML = '⚠️ เกิดข้อผิดพลาดในการสร้างไฟล์ PDF กำลังเปิดหน้าต่างพิมพ์ให้แทน...';
+        }
         window.print();
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+      } finally {
+        document.body.classList.remove('is-exporting-pdf');
       }
+    }
+
+    // Manual click on Download PDF
+    document.getElementById('btn-download-pdf').addEventListener('click', function() {
+      executeDirectPdfDownload(false);
     });
+
+    // Auto download if requested
+    ${autoDownload ? `
+      window.addEventListener('load', async () => {
+        if (document.fonts) {
+          await document.fonts.ready;
+        }
+        setTimeout(() => {
+          executeDirectPdfDownload(true);
+        }, 500);
+      });
+    ` : ''}
+
+    // Auto print trigger if requested
+    ${autoPrint ? `
+      window.addEventListener('load', async () => {
+        if (document.fonts) {
+          await document.fonts.ready;
+        }
+        setTimeout(() => {
+          window.print();
+        }, 500);
+      });
+    ` : ''}
   </script>
 </body>
 </html>

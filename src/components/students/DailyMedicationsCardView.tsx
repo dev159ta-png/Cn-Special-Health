@@ -261,45 +261,59 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
     setDeleteTarget(null);
   };
 
-  // Download PDF Report
-  const handleDownloadPdf = () => {
-    exportTableAsPDF({
-      title: 'รายงานรายชื่อนักเรียนที่ต้องรับประทานยาประจำตัว',
+  // Open PDF Export Configuration Modal
+  const handleOpenPdfModal = () => {
+    if (filterDormitory === 'male') {
+      setPdfTitle('รายชื่อยาประจำตัวนักเรียนหอชาย');
+      setPdfDormitory('male');
+    } else if (filterDormitory === 'female') {
+      setPdfTitle('รายชื่อยาประจำตัวนักเรียนหอหญิง');
+      setPdfDormitory('female');
+    } else {
+      setPdfTitle('รายชื่อยาประจำตัวนักเรียน');
+      setPdfDormitory('all');
+    }
+    setPdfModalOpen(true);
+  };
+
+  // Execute PDF Export with chosen options
+  const handleExecuteExportPdf = (autoPrint: boolean, autoDownload: boolean = false) => {
+    let targetStudents = studentsWithDailyMeds;
+    if (pdfDormitory === 'male') {
+      targetStudents = studentsWithDailyMeds.filter(s => s.gender === 'ชาย');
+    } else if (pdfDormitory === 'female') {
+      targetStudents = studentsWithDailyMeds.filter(s => s.gender === 'หญิง');
+    } else {
+      targetStudents = filteredStudents;
+    }
+
+    exportDailyMedicationsPDF({
+      title: pdfTitle.trim() || 'รายชื่อยาประจำตัวนักเรียน',
       schoolName: systemConfig?.schoolName || 'โรงเรียนศึกษาพิเศษชัยนาท',
-      schoolLogo: systemConfig?.schoolLogo,
-      showIndex: true,
-      columns: [
-        { header: 'รหัส', key: 'studentCode', width: '80px', align: 'center' },
-        { header: 'ชื่อ-นามสกุล (ชื่อเล่น)', key: 'fullName', width: '180px', align: 'left' },
-        { header: 'ระดับชั้น/ห้อง', key: 'classroom', width: '90px', align: 'center' },
-        { header: 'รายการยาประจำตัว / ขนาดยา / เวลาที่รับประทาน', key: 'medicationDetails', width: '420px', align: 'left' },
-        { header: 'การจัดเก็บ', key: 'storage', width: '100px', align: 'center' }
-      ],
-      rows: filteredStudents.map((s) => ({
-        studentCode: s.studentCode,
-        fullName: `${s.prefix}${s.firstName} ${s.lastName} (${s.nickname})`,
+      students: targetStudents.map(s => ({
+        prefix: s.prefix,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        nickname: s.nickname,
+        grade: s.grade,
         classroom: s.classroom,
-        medicationDetails: (s.dailyMedications || []).length > 0
-          ? (s.dailyMedications || []).map((m, idx) => {
-              const lines = [
-                `${idx + 1}. 💊 ${m.medicineName}`,
-                `   • ขนาดยา: ${m.dosage}  |  เวลา: ${m.timing}`
-              ];
-              if (m.notes) {
-                lines.push(`   • หมายเหตุ: ${m.notes}`);
-              }
-              return lines.join('\n');
-            }).join('\n\n')
-          : '-',
-        storage: (s.dailyMedications || []).map(m => m.storage).join(', ') || '-'
+        gender: s.gender,
+        dailyMedications: (s.dailyMedications || []).map(m => ({
+          medicineName: m.medicineName,
+          dosage: m.dosage,
+          timing: m.timing,
+          storage: m.storage,
+          notes: m.notes
+        }))
       })),
-      summaryStats: [
-        { label: 'จำนวนนักเรียนที่รับประทานยา', value: `${filteredStudents.length} คน` },
-        { label: 'จำนวนรายการยาทั้งหมด', value: `${totalMedsCount} รายการ` },
-        { label: 'มื้อกลางวัน (ที่โรงเรียน)', value: `${lunchMedsCount} รายการ` },
-        { label: 'ยาที่ต้องแช่เย็น', value: `${fridgeMedsCount} รายการ` }
-      ]
+      emptyRowsCount: pdfEmptyRows,
+      showSignature: pdfShowSignature,
+      signatureTitle: pdfSignatureTitle,
+      autoPrint: autoPrint,
+      autoDownload: autoDownload
     });
+
+    setPdfModalOpen(false);
   };
 
   return (
@@ -315,7 +329,7 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
               รายชื่อนักเรียนที่ต้องรับประทานยาประจำตัว
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              ติดตามตารางจ่ายยา ขนาดยา การจัดเก็บ ปรับมุมมองการ์ดหรือตาราง และดาวน์โหลดเป็น PDF ได้
+              ติดตามตารางจ่ายยา ขนาดยา การจัดเก็บ ปรับมุมมองการ์ดหรือตาราง และพิมพ์/ส่งออกเป็น PDF ภาษาไทยไม่เพี้ยน
             </p>
           </div>
         </div>
@@ -348,12 +362,12 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
           {/* Download PDF Button */}
           <button
             type="button"
-            onClick={handleDownloadPdf}
-            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors shadow-2xs"
-            title="ดาวน์โหลดข้อมูลเป็นเอกสาร PDF แบบตาราง"
+            onClick={handleOpenPdfModal}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-2xs"
+            title="พิมพ์หรือดาวน์โหลดเอกสาร PDF ตารางยาประจำตัวตามแบบฟอร์ม"
           >
-            <FileDown className="w-4 h-4 text-blue-600" />
-            <span>ดาวน์โหลด PDF (ตาราง)</span>
+            <FileText className="w-4 h-4" />
+            <span>พิมพ์ / โหลด PDF ตารางยา</span>
           </button>
 
           {canAdmin && (
@@ -503,6 +517,31 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
             </select>
           </div>
 
+          {/* Dormitory / Gender Filter */}
+          <select
+            value={filterDormitory}
+            onChange={(e) => {
+              const val = e.target.value as 'all' | 'male' | 'female';
+              setFilterDormitory(val);
+              if (val === 'male') {
+                setPdfTitle('รายชื่อยาประจำตัวนักเรียนหอชาย');
+              } else if (val === 'female') {
+                setPdfTitle('รายชื่อยาประจำตัวนักเรียนหอหญิง');
+              } else {
+                setPdfTitle('รายชื่อยาประจำตัวนักเรียน');
+              }
+            }}
+            className={`text-xs rounded-xl border py-2 px-2.5 font-bold transition-colors ${
+              filterDormitory !== 'all'
+                ? 'border-blue-500 bg-blue-50 text-blue-900 ring-2 ring-blue-200'
+                : 'border-slate-300 bg-white text-slate-700'
+            }`}
+          >
+            <option value="all">🏢 ทุกหอนอน (ชาย/หญิง)</option>
+            <option value="male">👦 หอชาย (นักเรียนชาย)</option>
+            <option value="female">👧 หอหญิง (นักเรียนหญิง)</option>
+          </select>
+
           {/* Classroom / Grade */}
           <select
             value={filterClassroom}
@@ -559,138 +598,286 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
           )}
         </div>
       ) : viewMode === 'table' ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-600 border-collapse">
-              <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="py-3.5 px-3 text-center w-14">ลำดับ</th>
-                  <th className="py-3.5 px-3 w-48">ข้อมูลนักเรียน</th>
-                  <th className="py-3.5 px-3 text-center w-28">ระดับชั้น/ห้อง</th>
-                  <th className="py-3.5 px-4 min-w-[340px]">รายการยาประจำตัว / ขนาดยา / เวลาที่รับประทาน</th>
-                  <th className="py-3.5 px-3 text-center w-28">การจัดเก็บ</th>
-                  <th className="py-3.5 px-3 w-44">ผู้ปกครอง / เบอร์โทร</th>
-                  <th className="py-3.5 px-3 text-center w-36">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredStudents.map((student, idx) => {
-                  const meds = student.dailyMedications || [];
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden space-y-0">
+          {/* Sub-toolbar for Table Mode: Switch between Official Paper Form & Detailed Admin Table */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 border-b border-slate-200">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-bold text-slate-700">รูปแบบตาราง:</span>
+              <div className="inline-flex rounded-xl bg-slate-200/80 p-0.5 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setTableLayoutMode('neat_lines')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    tableLayoutMode === 'neat_lines'
+                      ? 'bg-white text-blue-700 font-bold shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  📄 แบบฟอร์มทางการ (แถวตรงกัน)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTableLayoutMode('detailed')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    tableLayoutMode === 'detailed'
+                      ? 'bg-white text-blue-700 font-bold shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  📋 แบบละเอียด (มีรูป/เบอร์โทร)
+                </button>
+              </div>
+            </div>
 
-                  return (
-                    <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-3 text-center font-mono text-slate-400">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center space-x-2.5">
-                          <StudentAvatar
-                            src={student.photoUrl}
-                            gender={student.gender}
-                            name={student.firstName}
-                            className="w-9 h-9 rounded-xl object-cover border border-slate-200 flex-shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <div className="font-bold text-slate-800 text-xs truncate">
-                              {student.prefix}{student.firstName} {student.lastName}
-                            </div>
-                            <div className="text-[11px] text-slate-400 flex items-center space-x-1.5">
-                              <span className="font-mono text-blue-700 bg-blue-50 px-1 rounded">{student.studentCode}</span>
-                              <span>ชื่อเล่น: <strong className="text-slate-700">{student.nickname}</strong></span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-slate-500 font-medium">
+                ทั้งหมด <strong>{filteredStudents.length}</strong> คน
+              </span>
+              <button
+                type="button"
+                onClick={handleOpenPdfModal}
+                className="inline-flex items-center space-x-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold text-xs transition-colors"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>พิมพ์/บันทึก PDF</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            {tableLayoutMode === 'neat_lines' ? (
+              /* Neat Lines Format - Matches the School Paperwork (Exact Horizontal Alignment) */
+              <table className="w-full text-left text-xs border-collapse border border-slate-300">
+                <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 text-xs">
+                  <tr>
+                    <th className="py-2.5 px-2 text-center w-12 border border-slate-300">ลำดับ</th>
+                    <th className="py-2.5 px-3 w-60 border border-slate-300">ชื่อ - นามสกุล</th>
+                    <th className="py-2.5 px-2 text-center w-24 border border-slate-300">ระดับชั้น</th>
+                    <th className="py-2.5 px-2 text-center w-20 border border-slate-300">ชื่อเล่น</th>
+                    <th className="py-2.5 px-3 w-72 border border-slate-300">ชื่อยา</th>
+                    <th className="py-2.5 px-3 min-w-[280px] border border-slate-300">วิธีใช้</th>
+                    <th className="py-2.5 px-2 text-center w-20 border border-slate-300">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredStudents.map((student, idx) => {
+                    const meds = student.dailyMedications || [];
+                    const gradeClass = student.classroom || student.grade || '-';
+
+                    return (
+                      <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-2.5 px-2 text-center font-bold text-slate-700 border border-slate-300 align-top">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2.5 px-3 border border-slate-300 align-top">
+                          <div className="font-bold text-slate-900 text-xs">
+                            {student.prefix}{student.firstName} {student.lastName}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                            รหัส: {student.studentCode}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-2 text-center border border-slate-300 align-top font-semibold text-slate-700">
+                          <span className="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 text-[11px] font-bold">
+                            {gradeClass}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 text-center border border-slate-300 align-top font-bold text-blue-900">
+                          {student.nickname || '-'}
+                        </td>
+
+                        {/* Combined paired medication columns (Aligned row-by-row on exact horizontal line) */}
+                        <td colSpan={2} className="p-0 border border-slate-300 align-top">
+                          {meds.length === 0 ? (
+                            <div className="py-2.5 px-3 text-slate-400 italic">- ไม่มียาประจำตัว -</div>
+                          ) : (
+                            <table className="w-full border-collapse">
+                              <tbody>
+                                {meds.map((m, mIdx) => {
+                                  const isLast = mIdx === meds.length - 1;
+                                  const borderBottomClass = isLast ? '' : 'border-b border-slate-200';
+                                  const usageParts = [m.dosage, m.timing].filter(Boolean);
+                                  let usageText = usageParts.join(' ');
+                                  if (m.notes) {
+                                    usageText += ` (${m.notes})`;
+                                  }
+
+                                  return (
+                                    <tr key={m.id || mIdx} className={borderBottomClass}>
+                                      <td className="py-2 px-3 w-72 text-slate-900 font-semibold text-xs align-top">
+                                        💊 {m.medicineName}
+                                      </td>
+                                      <td className="py-2 px-3 text-slate-700 text-xs align-top border-l border-slate-300">
+                                        {usageText || '-'}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-2.5 px-2 text-center border border-slate-300 align-top">
+                          <div className="flex items-center justify-center space-x-1">
+                            {onNewVisit && (
+                              <button
+                                type="button"
+                                onClick={() => onNewVisit(student.id)}
+                                className="p-1 rounded-md text-blue-600 hover:bg-blue-50"
+                                title="บันทึกการกินยา"
+                              >
+                                <HeartHandshake className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => onSelectStudent(student, 'medications')}
+                              className="px-2 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[10px]"
+                            >
+                              ดูข้อมูล
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              /* Detailed Management Table */
+              <table className="w-full text-left text-xs text-slate-600 border-collapse">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="py-3.5 px-3 text-center w-14">ลำดับ</th>
+                    <th className="py-3.5 px-3 w-48">ข้อมูลนักเรียน</th>
+                    <th className="py-3.5 px-3 text-center w-28">ระดับชั้น/ห้อง</th>
+                    <th className="py-3.5 px-4 min-w-[340px]">รายการยาประจำตัว / ขนาดยา / เวลาที่รับประทาน</th>
+                    <th className="py-3.5 px-3 text-center w-28">การจัดเก็บ</th>
+                    <th className="py-3.5 px-3 w-44">ผู้ปกครอง / เบอร์โทร</th>
+                    <th className="py-3.5 px-3 text-center w-36">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredStudents.map((student, idx) => {
+                    const meds = student.dailyMedications || [];
+
+                    return (
+                      <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-3 text-center font-mono text-slate-400">
+                          {idx + 1}
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center space-x-2.5">
+                            <StudentAvatar
+                              src={student.photoUrl}
+                              gender={student.gender}
+                              name={student.firstName}
+                              className="w-9 h-9 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-800 text-xs truncate">
+                                {student.prefix}{student.firstName} {student.lastName}
+                              </div>
+                              <div className="text-[11px] text-slate-400 flex items-center space-x-1.5">
+                                <span className="font-mono text-blue-700 bg-blue-50 px-1 rounded">{student.studentCode}</span>
+                                <span>ชื่อเล่น: <strong className="text-slate-700">{student.nickname}</strong></span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-center font-bold text-slate-800 text-xs">
-                        {student.classroom}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="space-y-1.5">
-                          {meds.map(med => (
-                            <div key={med.id} className="p-2 rounded-xl bg-blue-50/80 border border-blue-200/70 text-xs">
-                              <div className="flex flex-wrap items-center justify-between gap-1.5">
-                                <div className="flex items-center space-x-2">
-                                  <span className="font-bold text-blue-950">
-                                    💊 {med.medicineName}
-                                  </span>
-                                  <span className="text-slate-700 font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
-                                    ขนาดยา: {med.dosage}
+                        </td>
+                        <td className="py-3 px-3 text-center font-bold text-slate-800 text-xs">
+                          {student.classroom}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="space-y-1.5">
+                            {meds.map(med => (
+                              <div key={med.id} className="p-2 rounded-xl bg-blue-50/80 border border-blue-200/70 text-xs">
+                                <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-bold text-blue-950">
+                                      💊 {med.medicineName}
+                                    </span>
+                                    <span className="text-slate-700 font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                                      ขนาดยา: {med.dosage}
+                                    </span>
+                                  </div>
+                                  <span className="inline-flex items-center space-x-1 text-[11px] font-semibold text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                                    <span>⏰</span>
+                                    <span>เวลา: {med.timing}</span>
                                   </span>
                                 </div>
-                                <span className="inline-flex items-center space-x-1 text-[11px] font-semibold text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
-                                  <span>⏰</span>
-                                  <span>เวลา: {med.timing}</span>
-                                </span>
+                                {med.notes && (
+                                  <div className="text-amber-800 text-[10px] mt-1 font-medium pl-6">
+                                    ⚠️ หมายเหตุ: {med.notes}
+                                  </div>
+                                )}
                               </div>
-                              {med.notes && (
-                                <div className="text-amber-800 text-[10px] mt-1 font-medium pl-6">
-                                  ⚠️ หมายเหตุ: {med.notes}
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <div className="space-y-1">
+                            {meds.map(med => {
+                              const isFridge = med.storage.includes('ตู้เย็น');
+                              return (
+                                <div key={med.id}>
+                                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                    isFridge ? 'bg-cyan-100 text-cyan-800' : 'bg-amber-100 text-amber-800'
+                                  }`}>
+                                    {isFridge ? '❄️ ตู้เย็น 2-8°C' : '🌡️ อุณหภูมิห้อง'}
+                                  </span>
                                 </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <div className="space-y-1">
-                          {meds.map(med => {
-                            const isFridge = med.storage.includes('ตู้เย็น');
-                            return (
-                              <div key={med.id}>
-                                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                  isFridge ? 'bg-cyan-100 text-cyan-800' : 'bg-amber-100 text-amber-800'
-                                }`}>
-                                  {isFridge ? '❄️ ตู้เย็น 2-8°C' : '🌡️ อุณหภูมิห้อง'}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="font-medium text-slate-800 text-xs">
-                          {student.guardianName || '-'}
-                        </div>
-                        <div className="text-[11px] text-blue-700 font-mono mt-0.5">
-                          📞 {student.guardianPhone || student.emergencyPhone || '-'}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          {onShowQR && (
+                              );
+                            })}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-medium text-slate-800 text-xs">
+                            {student.guardianName || '-'}
+                          </div>
+                          <div className="text-[11px] text-blue-700 font-mono mt-0.5">
+                            📞 {student.guardianPhone || student.emergencyPhone || '-'}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <div className="flex items-center justify-center space-x-1">
+                            {onShowQR && (
+                              <button
+                                type="button"
+                                onClick={() => onShowQR(student)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                                title="แสดง QR Code"
+                              >
+                                <QrCode className="w-4 h-4" />
+                              </button>
+                            )}
+                            {onNewVisit && (
+                              <button
+                                type="button"
+                                onClick={() => onNewVisit(student.id)}
+                                className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                                title="บันทึกการกินยา"
+                              >
+                                <HeartHandshake className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               type="button"
-                              onClick={() => onShowQR(student)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-                              title="แสดง QR Code"
+                              onClick={() => onSelectStudent(student, 'medications')}
+                              className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] transition-colors"
                             >
-                              <QrCode className="w-4 h-4" />
+                              ดูข้อมูล
                             </button>
-                          )}
-                          {onNewVisit && (
-                            <button
-                              type="button"
-                              onClick={() => onNewVisit(student.id)}
-                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-                              title="บันทึกการกินยา"
-                            >
-                              <HeartHandshake className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => onSelectStudent(student, 'medications')}
-                            className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] transition-colors"
-                          >
-                            ดูข้อมูล
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       ) : (
@@ -1094,6 +1281,231 @@ export const DailyMedicationsCardView: React.FC<DailyMedicationsCardViewProps> =
               >
                 ยืนยันการลบ
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Export Configuration Modal */}
+      {pdfModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden animate-in fade-in">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 bg-blue-600 text-white rounded-xl shadow-2xs">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">
+                    ส่งออกเอกสาร PDF ตารางยาประจำตัว
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    จัดรูปแบบตามแบบฟอร์มโรงเรียน ตัวหนังสือภาษาไทยคมชัด 100% สระไม่เพี้ยน
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPdfModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              {/* Document Title */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  ชื่อหัวข้อเอกสาร (ด้านบนของตาราง)
+                </label>
+                <div className="flex gap-1.5 mb-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => { setPdfTitle('รายชื่อยาประจำตัวนักเรียนหอชาย'); setPdfDormitory('male'); }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                      pdfTitle === 'รายชื่อยาประจำตัวนักเรียนหอชาย' && pdfDormitory === 'male'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    👦 รายชื่อยาประจำตัวนักเรียนหอชาย
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPdfTitle('รายชื่อยาประจำตัวนักเรียนหอหญิง'); setPdfDormitory('female'); }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                      pdfTitle === 'รายชื่อยาประจำตัวนักเรียนหอหญิง' && pdfDormitory === 'female'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    👧 รายชื่อยาประจำตัวนักเรียนหอหญิง
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPdfTitle('รายชื่อยาประจำตัวนักเรียน'); setPdfDormitory('all'); }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                      pdfTitle === 'รายชื่อยาประจำตัวนักเรียน' && pdfDormitory === 'all'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    🏢 ทั้งหมด
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={pdfTitle}
+                  onChange={(e) => setPdfTitle(e.target.value)}
+                  placeholder="ระบุหัวข้อเอกสาร..."
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-semibold focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Dormitory / Target Group */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  กลุ่มนักเรียนที่จะพิมพ์ในเอกสาร
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPdfDormitory('male')}
+                    className={`p-2.5 rounded-xl border text-center transition-all ${
+                      pdfDormitory === 'male'
+                        ? 'border-blue-600 bg-blue-50/80 text-blue-900 font-bold shadow-2xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="text-sm mb-0.5">👦</div>
+                    <div>หอชาย (ชาย)</div>
+                    <div className="text-[10px] opacity-70 font-normal mt-0.5">
+                      {studentsWithDailyMeds.filter(s => s.gender === 'ชาย').length} คน
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPdfDormitory('female')}
+                    className={`p-2.5 rounded-xl border text-center transition-all ${
+                      pdfDormitory === 'female'
+                        ? 'border-blue-600 bg-blue-50/80 text-blue-900 font-bold shadow-2xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="text-sm mb-0.5">👧</div>
+                    <div>หอหญิง (หญิง)</div>
+                    <div className="text-[10px] opacity-70 font-normal mt-0.5">
+                      {studentsWithDailyMeds.filter(s => s.gender === 'หญิง').length} คน
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPdfDormitory('all')}
+                    className={`p-2.5 rounded-xl border text-center transition-all ${
+                      pdfDormitory === 'all'
+                        ? 'border-blue-600 bg-blue-50/80 text-blue-900 font-bold shadow-2xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="text-sm mb-0.5">🏢</div>
+                    <div>ทั้งหมด (ตามตัวกรอง)</div>
+                    <div className="text-[10px] opacity-70 font-normal mt-0.5">
+                      {filteredStudents.length} คน
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Extra Blank Rows & Signature */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    แถวว่างท้ายตารางสำหรับเขียนเพิ่ม
+                  </label>
+                  <select
+                    value={pdfEmptyRows}
+                    onChange={(e) => setPdfEmptyRows(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-300 p-2 text-xs bg-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={0}>ไม่มีแถวว่าง (0 แถว)</option>
+                    <option value={2}>2 แถว</option>
+                    <option value={4}>4 แถว (แนะนำตามแบบฟอร์ม)</option>
+                    <option value={6}>6 แถว</option>
+                    <option value={8}>8 แถว</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    ช่องลงชื่อผู้ดูแล/เจ้าหน้าที่
+                  </label>
+                  <label className="flex items-center space-x-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pdfShowSignature}
+                      onChange={(e) => setPdfShowSignature(e.target.checked)}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                    />
+                    <span className="font-semibold text-slate-700">แสดงช่องลงชื่อท้ายเอกสาร</span>
+                  </label>
+                </div>
+              </div>
+
+              {pdfShowSignature && (
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    ตำแหน่งผู้ลงชื่อ
+                  </label>
+                  <input
+                    type="text"
+                    value={pdfSignatureTitle}
+                    onChange={(e) => setPdfSignatureTitle(e.target.value)}
+                    placeholder="เช่น ผู้ดูแลหอนอน / เจ้าหน้าที่ห้องพยาบาล"
+                    className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+
+              {/* Thai Font Clarity Tip Banner */}
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 space-y-1">
+                <div className="font-bold flex items-center space-x-1.5 text-[11.5px]">
+                  <span>✨</span>
+                  <span>วิธีแก้ปัญหาภาษาไทยใน PDF เพี้ยน (แนะนำ):</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-emerald-800">
+                  คลิกปุ่ม <b>"🖨️ พิมพ์ / บันทึกเป็น PDF"</b> ด้านล่าง จากนั้นในหน้าต่างพิมพ์ของเบราว์เซอร์ ให้เลือกเครื่องพิมพ์ (Destination) เป็น <b>"Save as PDF"</b> หรือ <b>"บันทึกเป็น PDF"</b> ข้อความภาษาไทยทุกตัวรวมถึงสระและวรรณยุกต์จะเป็นเวกเตอร์คมกริบ 100% ไม่เพี้ยนและแถวตรงกันอย่างเป็นระเบียบ
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setPdfModalOpen(false)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExecuteExportPdf(false, true)}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition-colors"
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span>📥 ดาวน์โหลดไฟล์ .pdf โดยตรง (พอดีหน้า A4)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExecuteExportPdf(true, false)}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm transition-colors"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>🖨️ พิมพ์ / บันทึกเป็น PDF (คมชัด 100%)</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
